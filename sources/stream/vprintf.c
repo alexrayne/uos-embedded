@@ -72,6 +72,17 @@
 #include <stream/stream.h>
 #include <kernel/internal.h>
 
+
+int stream_printf(stream_t *u, const void *fmt, ...){
+	int err;
+    va_list args;
+    va_start (args, fmt);
+	err = stream_vprintf (u, fmt, args);
+    va_end (args);
+    return err;
+}
+
+
 /* Max number conversion buffer length: a long in base 2, plus NUL byte. */
 #define MAXNBUF	(sizeof(long) * 8 + 1)
 

@@ -4,7 +4,7 @@
 int
 vsnprintf (unsigned char *buf, int size, const char *fmt, va_list args)
 {
-	stream_buf_t u;
+	stream_str_t u;
 	int err;
 
 	stropen (&u, buf, size);

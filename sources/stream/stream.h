@@ -8,6 +8,13 @@
 extern "C" {
 #endif
 
+#ifndef INLINE
+#ifndef __cplusplus
+#define INLINE static inline
+#else
+#define INLINE inline
+#endif 
+#endif
 
 
 /*
@@ -21,43 +28,86 @@ typedef struct _stream_t {
 } stream_t;
 
 typedef struct _stream_interface_t {
-	void (*putc) (stream_t *u, short c);
-	unsigned short (*getc) (stream_t *u);
-	int (*peekc) (stream_t *u);
+	int  (*putc) (stream_t *u, unsigned c);
+	int  (*getc) (stream_t *u);
+	int  (*peekc) (stream_t *u);
 	void (*flush) (stream_t *u);
 	bool_t (*eof) (stream_t *u);
 	void (*close) (stream_t *u);
-	struct _mutex_t *(*receiver) (stream_t *u);
+	mutex_t* (*receiver) (stream_t *u);
+	mutex_t* (*transmiter) (stream_t *u);
+  //* \param len >= 0 - nonblocked write/read availed <=len bytes
+  //* \param c   == NULL - return avail bytes with no read/write
+	int  (*put)(stream_t *u, const void* c, unsigned len);
+	int  (*get)(stream_t *u, void* dst, unsigned len);
 #if STREAM_HAVE_ACCEESS > 0
 	//* позволяют потребовать монопольного захвата потока
-	bool_t  (*access_rx)(stream_t *u, bool_t onoff);
+    bool_t  (*access_rx)(stream_t *u, bool_t onoff);
     bool_t  (*access_tx)(stream_t *u, bool_t onoff);
 #endif
 } stream_interface_t;
 
+//* это враперы позволяют реализовать getc/putc функциями write/read.
+int stream_write1(stream_t *u, unsigned c);
+int stream_read1(stream_t *u);
+//* это враперы позволяют реализовать write/read функциями getc/putc.
+int stream_putcn(stream_t *u, const void *str, unsigned len);
+int stream_getcn(stream_t *u, void *dst, unsigned len);
+//this wrapers checks interface ability putn/getn, and use stream_put/getcn if not.
+int stream_putn(stream_t *u, const void *str, unsigned len);
+int stream_getn(stream_t *u, void *dst, unsigned len);
+
 #define to_stream(x)   ((stream_t*)&((x)->interface))
 
 void drain_input (stream_t *u); /* LY: чистит забуферизированный в потоке ввод. */
-int stream_puts (stream_t *u, const char *str);
-int stream_write (stream_t *u, const void *str, unsigned len);
-unsigned char *stream_gets (stream_t *u, unsigned char *str, int len);
-int stream_printf (stream_t *u, const char *fmt, ...);
+//эти функции блокирующие, блокируют доступ к потоку
+int stream_puts (stream_t *u, const char * __restrict str);
+//читает Zстроку завершающуюся delimiter
+int stream_getsx (stream_t *u, char * __restrict str, unsigned len, char delimiter);
+INLINE char *stream_gets (stream_t *u, char * __restrict str, unsigned len){
+    stream_getsx(u, str, len, '\n');
+    return str;
+}
+int stream_write(stream_t *u, const void *str, unsigned len);
+int stream_read (stream_t *u, void *dst, unsigned len);
+
+int stream_printf(stream_t *u, const void *fmt, ...);
 int stream_vprintf (stream_t *u, const char *fmt, va_list args);
 int stream_scanf (stream_t *u, const char *fmt, ...);
 int stream_vscanf (stream_t *u, const char *fmt, va_list argp);
 
 /*
+ * Методы приходится делать в виде макросов, т.к. необходимо приведение типа к родительскому.
+ * в C++ снято это ограничение за счет перегрузки функций
+ */
+#define stream_putchar(x,s)    (x)->interface->putc(to_stream (x), s)
+#define stream_getchar(x)  (x)->interface->getc(to_stream (x))
+#define stream_peekchar(x) (x)->interface->peekc(to_stream (x))
+#define stream_flush(x)       if ((x)->interface->flush) \
+            (x)->interface->flush(to_stream (x))
+#define stream_eof(x)     ((x)->interface->eof ? \
+            (x)->interface->eof(to_stream (x)) : 0)
+#define stream_close(x)       if ((x)->interface->close) \
+            (x)->interface->close(to_stream (x))
+#define stream_receiver(x)    ((x)->interface->receiver ? \
+            (x)->interface->receiver(to_stream (x)) : 0)
+#define stream_transmiter(x)    ((x)->interface->transmiter ? \
+            (x)->interface->transmiter(to_stream (x)) : 0)
+
+/*
  * Вывод в строку как в поток.
- * Для snprintf и т.п.
+ * !!! можно либо ввод/либо вывод. смешивание операций ведет к потере указателей
  */
 typedef struct {
 	const stream_interface_t *interface;
-	unsigned char *buf;
+	char *buf;
 	int size;
-} stream_buf_t;
+} stream_str_t;
+//typedef 
+#define stream_buf_t stream_str_t
 
-stream_t *stropen (stream_buf_t *u, unsigned char *buf, int size);
-void strclose (stream_buf_t *u);
+stream_t *stropen (stream_str_t *u, char * __restrict buf, int size);
+void strclose (stream_str_t *u);
 
 int snprintf (unsigned char *buf, int size, const char *fmt, ...);
 int vsnprintf (unsigned char *buf, int size, const char *fmt, va_list args);
@@ -158,6 +208,14 @@ inline mutex_t * freceiver(stream_t *x) {
         return (mutex_t*)0; //NULL
 };
 
+inline mutex_t* ftransmiter(stream_t *x) {
+    stream_interface_t* i = x->interface;
+    if (i->transmiter)
+        return i->transmiter(x);
+    else
+        return (mutex_t*)0; //NULL
+};
+
 inline int vfprintf(stream_t *u, const char *fmt, va_list args)
     {return stream_vprintf(u, fmt, args);};
 
@@ -172,8 +230,11 @@ inline int fprintf (stream_t *u, const char *fmt, ...) {
 
 inline int fputs(const char* s, stream_t *x) {return stream_puts(x, s);};
 inline int puts(stream_t *x, const char* s) {return stream_puts(x, s);};
-inline char* fgets(char* dst, int len, stream_t *x) {return (char*)stream_gets(x, (unsigned char*)dst, len);};
-inline char* gets(stream_t *x, char* dst, int len) {return (char*)stream_gets(x, (unsigned char*)dst, len);};
+inline char* fgets(char* dst, int len, stream_t *x) {return stream_gets(x, dst, len);};
+inline char* gets(stream_t *x, char* dst, int len) {return stream_gets(x, dst, len);};
+
+inline int fread(const void* s, size_t len, size_t n, stream_t *x) {return stream_read(x, s, n*len);};
+inline int fwite(void* dst, size_t len, size_t n, stream_t *x) {return stream_write(x, s, n*len);};
 
 inline int vprintf (stream_t *u, const char *fmt, va_list args) {
         return stream_vprintf (u, fmt, args);
