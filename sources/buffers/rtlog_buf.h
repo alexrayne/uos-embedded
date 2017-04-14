@@ -18,6 +18,7 @@
 
 #include <runtime/sys/uosc.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <buffers/ring_index.h>
 #include <stream/stream.h>
 

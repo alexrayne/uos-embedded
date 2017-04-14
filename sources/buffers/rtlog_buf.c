@@ -1,6 +1,7 @@
 #include <runtime/lib.h>
 #include <kernel/internal.h>
 #include <stdarg.h>
+#include <assert.h>
 #include <mem/mem.h>
 #include "rtlog_buf.h"
 
@@ -15,6 +16,7 @@
 #define RTLOG_STRICT_BOUNDS    1
 #define RTLOG_STRICT_MEM       2
 #define RTLOG_STRICT_ARGS      8
+#define RTLOG_STRICT_STACK     16
 #endif
 
 #ifndef RTLOG_STRICTNESS
@@ -54,43 +56,55 @@ int rtlog_printf  ( rtlog* u, unsigned nargs, ...){
     va_end (args);
     return err;
 
-    
-    if (ring_uindex_free(&u->idx) <= 0)
-        return -1;
-
+    //if (ring_uindex_free(&u->idx) <= 0)
+    //    return -1;
 }
 
-int rtlog_vprintf ( rtlog* u, unsigned nargs, const char *fmt, va_list args){
-    unsigned slot;
-    STRICT(MEM, rtlog_validate(u));
-    STRICT(ARGS, )
-        assert2(nargs <= RTLOG_ARGS_LIMIT
-                , "rtlog_vprintf passed %d args but supports masx %d\n"
-                , nargs, RTLOG_ARGS_LIMIT
-                );
-    if (nargs > RTLOG_ARGS_LIMIT)
-        nargs = RTLOG_ARGS_LIMIT;
-    arch_state_t x = arch_intr_off();
+rtlog_node* rtlog_aqure_slot(rtlog* u, const char *fmt){
     if (ring_uindex_full(&u->idx))
         // drop first message if full
         ring_uindex_get(&u->idx);
-    slot = u->idx.write;
+    unsigned slot = u->idx.write;
     STRICT(BOUNDS, assert(slot <= u->idx.mask));
     rtlog_node* n = u->store + slot;
     n->stamp = u->stamp;
     ++(u->stamp);
     n->msg = fmt;
+    return n;
+}
+
+int rtlog_vprintf ( rtlog* u, unsigned nargs, const char *fmt, va_list args) {
+    STRICT(MEM, rtlog_validate(u));
+    STRICT(ARGS, )
+        assert2( (nargs <= RTLOG_ARGS_LIMIT*2)
+                , "rtlog_vprintf passed %d args but supports masx %d\n"
+                , nargs, RTLOG_ARGS_LIMIT*2
+                );
+    if (nargs > RTLOG_ARGS_LIMIT*2)
+        nargs = RTLOG_ARGS_LIMIT*2;
+    arch_state_t x = arch_intr_off();
+    rtlog_node* n = rtlog_aqure_slot(u, fmt);
     unsigned i;
-    for (i = 0; i < nargs; i++)
+    if ((nargs > 0) /*&& ( (void*)(args) != 0 )*/ )
+    for (i = 0; i < RTLOG_ARGS_LIMIT/*nargs*/; i++)
         n->args[i] = va_arg(args, unsigned long);
+    else
     for (i = nargs; i < RTLOG_ARGS_LIMIT; i++)
         n->args[i] = 0;
     ring_uindex_put(&u->idx);
+    if (nargs > RTLOG_ARGS_LIMIT) {
+      //for long args ocupy 1 more slot
+      n->msg = 0;
+      rtlog_node* n = rtlog_aqure_slot(u, fmt);
+      for (i = 0; i < RTLOG_ARGS_LIMIT/*nargs*/; i++)
+        n->args[i] = va_arg(args, unsigned long);
+      ring_uindex_put(&u->idx);
+    }
     STRICT(BOUNDS, assert(u->idx.write <= u->idx.mask) );
     arch_intr_restore (x);
     RTLOG_printf("rtlog: printf %s to %d[stamp%x] %d args : %x, %x, %x, %x, %x, %x\n"
                 , fmt
-                , slot, n->stamp
+                , u->idx.write, n->stamp
                 , nargs
                 , n->args[0], n->args[1], n->args[2], n->args[3]
                 , n->args[4], n->args[5]
@@ -99,7 +113,8 @@ int rtlog_vprintf ( rtlog* u, unsigned nargs, const char *fmt, va_list args){
 }
 
 int rtlog_puts( rtlog* u, const char *str){
-    return rtlog_vprintf(u, 0, str, 0);
+    va_list dummy;
+    return rtlog_vprintf(u, 0, str, dummy);
 }
 
 //* печатает records_count последних записей журнала в dst
@@ -107,7 +122,9 @@ void rtlog_dump_last( rtlog* u, stream_t *dst, unsigned records_count)
 {
     unsigned slot = 0;
     rtlog_node n;
+    rtlog_node n1;
     unsigned last_stamp = u->stamp;
+    n1.stamp = ~last_stamp;
 
     {
         arch_state_t x = arch_intr_off();
@@ -142,13 +159,25 @@ void rtlog_dump_last( rtlog* u, stream_t *dst, unsigned records_count)
                           , (n.stamp - 1 - last_stamp) 
                           );
         last_stamp = n.stamp;
-
+        if (n.msg != 0) {
         void* sp = get_stack_pointer();
+        if (n.stamp != (n1.stamp+1))
         stream_printf(dst, n.msg
                     , n.args[0], n.args[1], n.args[2], n.args[3]
                     , n.args[4], n.args[5]
                     );
-        assert(sp == get_stack_pointer());
+        else
+        stream_printf(dst, n.msg
+                    , n1.args[0], n1.args[1], n1.args[2], n1.args[3]
+                    , n1.args[4], n1.args[5]
+                    , n.args[0], n.args[1], n.args[2], n.args[3]
+                    , n.args[4], n.args[5]
+                    );
+        STRICT(STACK, assert(sp == get_stack_pointer()) );
+        } //if (n.msg == 0)
+        else {
+          memcpy(&n1, &n, sizeof(n));
+        }
 
         slot = (slot+1) & u->idx.mask;
         --records_count;
