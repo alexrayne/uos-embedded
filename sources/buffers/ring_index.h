@@ -70,6 +70,24 @@ unsigned ring_uindex_free(ring_uindex_t *cb){
     return (cb->read - cb->write -1) & cb->mask;
 }
 
+// \return solid fragment from read
+INLINE
+unsigned ring_uindex_avail_solid(ring_uindex_t *cb){
+    if (cb->read <= cb->write)
+        return cb->write - cb->read;
+    else
+        return cb->mask+1 - cb->read;
+}
+
+// \return solid freespace from write
+INLINE
+unsigned ring_uindex_free_solid(ring_uindex_t *cb){
+    if (cb->read > cb->write)
+        return cb->read - cb->write;
+    else
+        return cb->mask+1 - cb->write;
+}
+
 INLINE
 char ring_uindex_full(ring_uindex_t *cb){
     return ring_uindex_avail(cb) == cb->mask;
@@ -87,11 +105,23 @@ void ring_uindex_get (ring_uindex_t *cb)
     cb->read = ((cb->read+1) & cb->mask) ; // +cb->data
 }
 
+INLINE
+void ring_uindex_getn(ring_uindex_t *cb, unsigned len)
+{
+    cb->read = ((cb->read+len) & cb->mask) ; // +cb->data
+}
+
 //* !!! MUST check free data, before get
 INLINE
 void ring_uindex_put (ring_uindex_t *cb)
 {
     cb->write = ((cb->write+1) & cb->mask) ; // +cb->data
+}
+
+INLINE
+void ring_uindex_putn (ring_uindex_t *cb, unsigned len)
+{
+    cb->write = ((cb->write+len) & cb->mask) ; // +cb->data
 }
 
 
