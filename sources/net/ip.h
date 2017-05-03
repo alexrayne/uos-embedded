@@ -163,10 +163,12 @@ typedef struct _ip_hdr_t {
 #define IP_HLEN		20		/* IP header length */
 #define IP_MAXPACKET	1500		/* max packet size after reassemble */
 
-#define IP_ADDR(val)	({unsigned long addr = val; (unsigned char*) &addr; })
+//#define IP_ADDR(val)	({static unsigned long addr = val; (unsigned char*) &addr;})
+extern const unsigned long IP_ZERO_ADDR;
+extern const unsigned long IP_BROADCAST_ADDR;
 
-#define IS_BROADCAST(ipaddr)	(memcmp (ipaddr, IP_ADDR(0xffffffff), 4) == 0 ||\
-				 memcmp (ipaddr, IP_ADDR(0), 4) == 0)
+#define IS_BROADCAST(ipaddr)	(memcmp (ipaddr, &IP_BROADCAST_ADDR, 4) == 0 ||\
+				 memcmp (ipaddr, &IP_ZERO_ADDR, 4) == 0)
 #define IS_MULTICAST(ipaddr)	((ipaddr[0] & 0xf0) == 0xe0)
 
 #define ICMP_ER		0	/* echo reply */

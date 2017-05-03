@@ -257,8 +257,8 @@ tcp_socket_t *tcp_listen (ip_t *ip, unsigned char *ipaddr,
 	/* Check if the address already is in use. */
 	for (cs = ip->tcp_listen_sockets; cs != 0; cs = cs->next) {
 		if (cs->local_port == port) {
-			if (memcmp (cs->local_ip, IP_ADDR(0), 4) == 0 ||
-			    memcmp (ipaddr, IP_ADDR(0), 4) == 0 ||
+			if (memcmp (cs->local_ip, &IP_ZERO_ADDR, 4) == 0 ||
+			    memcmp (ipaddr, &IP_ZERO_ADDR, 4) == 0 ||
 			    memcmp (cs->local_ip, ipaddr, 4) == 0) {
 				mutex_unlock (&ip->lock);
 				mem_free (s);
@@ -268,8 +268,8 @@ tcp_socket_t *tcp_listen (ip_t *ip, unsigned char *ipaddr,
 	}
 	for (cs = ip->tcp_sockets; cs != 0; cs = cs->next) {
 		if (cs->local_port == port) {
-			if (memcmp (cs->local_ip, IP_ADDR(0), 4) == 0 ||
-			    memcmp (ipaddr, IP_ADDR(0), 4) == 0 ||
+			if (memcmp (cs->local_ip, &IP_ZERO_ADDR, 4) == 0 ||
+			    memcmp (ipaddr, &IP_ZERO_ADDR, 4) == 0 ||
 			    memcmp (cs->local_ip, ipaddr, 4) == 0) {
 				mutex_unlock (&ip->lock);
 				mem_free (s);
@@ -278,7 +278,7 @@ tcp_socket_t *tcp_listen (ip_t *ip, unsigned char *ipaddr,
 		}
 	}
 
-	if (memcmp (ipaddr, IP_ADDR(0), 4) != 0) {
+	if (memcmp (ipaddr, &IP_ZERO_ADDR, 4) != 0) {
 		memcpy (s->local_ip, ipaddr, 4);
 	}
 	s->local_port = port;

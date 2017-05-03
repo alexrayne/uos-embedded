@@ -38,12 +38,12 @@ extern "C" {
 #include <buf/buf-queue.h>
 
 // Функции для работы с буффером ethernet-контроллера используют DMA
-//#define ETH_USE_DMA				1
+//#define ETH_USE_DMA				
 #define ETH_TX_DMA_CHN  		ARM_DMA_CHN_30
 #define ETH_RX_DMA_CHN  		ARM_DMA_CHN_31
 
 //Для работы без прерываний с poll-функциями
-//#define ETH_POLL_MODE 			1
+//#define ETH_POLL_MODE 			
 
 #define ARM_ETH_PHY_ADDRESS 	0x1C
 #define ARM_ANALOG_MASK(n) 		(1 << (n))
@@ -80,12 +80,14 @@ extern "C" {
 // размер окна коллизий
 #define COLL_WND		((uint32_t)(1 << 7))
 
-#define ETH_INQ_SIZE     TCP_SOCKET_QUEUE_SIZE//16 
-#define ETH_INQ_SBYTES   2048//1536//ARM_ETH_BUF_SIZE_R//2048  // допустимое кол-во байт в очереди
-#define ETH_OUTQ_SIZE    TCP_SND_QUEUELEN//8  
-#define ETH_OUTQ_SBYTES  2048//1536//ARM_ETH_BUF_SIZE_X  // допустимое кол-во байт в очереди
+#define ETH_INQ_SIZE     TCP_SOCKET_QUEUE_SIZE
+#define ETH_INQ_SBYTES   2048 //ARM_ETH_BUF_SIZE_R  // допустимое кол-во байт в очереди
+#define ETH_OUTQ_SIZE    TCP_SND_QUEUELEN
+#define ETH_OUTQ_SBYTES  2048 //ARM_ETH_BUF_SIZE_X  // допустимое кол-во байт в очереди
 
 #define ETH_MTU      	 1518 // максимальная длина ethernet-включая заголовки и CRC (без преамбулы и сепаратора)
+
+extern task_t *eth_task;
 
 typedef enum {RESET = 0, SET = !RESET} FlagStatus, ITStatus;
 void eth_controller_init(const uint8_t* MACAddr, uint8_t PHYMode);
@@ -122,7 +124,7 @@ typedef struct _eth_t {
     uint8_t *txbuf;           	   /* aligned txbuf[] */
     uint32_t rxbuf_physaddr;       /* phys address of rxbuf[] */
     uint32_t txbuf_physaddr;       /* phys address of txbuf[] */
-    uint16_t ifr_reg;
+    arm_reg_t ifr_reg;
     char  *mut_signal;
     
     intr_handler_t irq_rx;
@@ -136,8 +138,7 @@ void eth_led(void);
 // вызывается до eth_init(), иначе будет  hard fault
 //  
 //  
-void create_eth_interrupt_task (eth_t *u, int prio, void *stack, int stacksz); //с быстрым обработчиком
-//void create_eth_interrupt_task (int irq, int prio, void *stack, int stacksz); 
+void create_eth_interrupt_task (eth_t *u, int prio, void *stack, int stacksz); 
 
 // Инициализация драйвера Ethernet
 // 

@@ -165,7 +165,7 @@ drop:
 			continue;
 
 		/* Compare peer IP address (or broadcast). */
-		if (memcmp (s->peer_ip, IP_ADDR(0), 4) != 0 &&
+		if (memcmp (s->peer_ip, &IP_ZERO_ADDR, 4) != 0 &&
 		     memcmp (s->peer_ip, iph->src, 4) != 0)
 			continue;
 
@@ -293,7 +293,7 @@ udp_send (udp_socket_t *s, buf_t *p)
 {
 	/* To send packets using UDP socket, it must
 	 * have nonzero remote IP address and port number. */
-	if (! s->peer_port || memcmp (s->peer_ip, IP_ADDR(0), 4) == 0) {
+	if (! s->peer_port || memcmp (s->peer_ip, &IP_ZERO_ADDR, 4) == 0) {
 		return 0;
 	}
 
