@@ -128,7 +128,7 @@
 #   define MIPS_FSPACE		24	/* for Elvees MC24R2 */
 #endif
 #ifdef ELVEES_NVCOM01
-#   define MIPS_FSPACE		24	/* for Elvees NVCom-01 */
+#   define MIPS_FSPACE		80	/* for Elvees NVCom-01 */
 #endif
 #ifdef ELVEES_NVCOM02
 #   define MIPS_FSPACE		24	/* TODO: for Elvees NVCom-02 */
