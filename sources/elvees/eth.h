@@ -54,8 +54,8 @@ typedef struct _eth_t {
 
 	unsigned phy;			/* address of external PHY */
 	unsigned long intr;		/* interrupt counter */
-	unsigned char rxbuf_data [ETH_MTU + 8];
-	unsigned char txbuf_data [ETH_MTU + 8];
+	unsigned char rxbuf_data [ETH_MTU + 36];
+	unsigned char txbuf_data [ETH_MTU + 36];
 	unsigned char *rxbuf;		/* aligned rxbuf[] */
 	unsigned char *txbuf;		/* aligned txbuf[] */
 	unsigned rxbuf_physaddr;	/* phys address of rxbuf[] */

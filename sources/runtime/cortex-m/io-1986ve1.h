@@ -1941,6 +1941,7 @@ typedef struct
 /*----------------------------------------
  * Описание регистров контроллера Ethernet
  */
+#if ARM_1986BE1_OLD_ETH
 typedef struct
 {
     volatile uint16_t    DELIMITER;
@@ -1967,6 +1968,35 @@ typedef struct
     volatile uint16_t    PHY_CTRL;
     volatile uint16_t    PHY_STAT;
 } __attribute__ ((packed)) ETH_t;
+#else
+typedef struct
+{
+    volatile uint16_t    DELIMITER;
+    volatile uint8_t     MAC_ADDR[6];
+    volatile uint8_t     HASH[8];
+    volatile uint16_t    IPG;
+    volatile uint16_t    PSC;
+    volatile uint16_t    BAG;
+    volatile uint16_t    JITTER_WND;
+    volatile uint16_t    R_CFG;
+    volatile uint16_t    X_CFG;
+    volatile uint16_t    G_CFG_LOW;
+    volatile uint16_t    G_CFG_HI;
+    volatile uint16_t    IMR;
+    volatile uint16_t    IFR;
+    volatile uint16_t    MDIO_CTRL;
+    volatile uint16_t    MDIO_DATA;
+    volatile uint16_t    R_HEAD;
+    volatile uint16_t    X_TAIL;
+    volatile uint16_t    R_TAIL;
+    volatile uint16_t    X_HEAD;
+    volatile uint16_t    STAT;
+    volatile uint16_t    spare0;
+    volatile uint16_t    PHY_CTRL;
+    volatile uint16_t    PHY_STAT;
+} __attribute__ ((packed)) ETH_t;
+#endif
+
 
 #define ARM_ETH             ((volatile ETH_t *) ARM_ETH_REG_BASE)
 #define ARM_ETH_BUF		    *((arm_reg_t *) ARM_ETH_BUF_BASE)
@@ -2156,6 +2186,54 @@ CRC пакета */
 												0 – от блока PHY прерывания отсутствуют
 												(дублируется в регистре прерываний блока МАС). */
 
+/*
+ * PHY Intermal registers
+ */
+#define ARM_ETH_PHY_BASIC_CTRL			0
+#define ARM_ETH_PHY_BASIC_STAT			1
+#define ARM_ETH_PHY_ID_1				2
+#define ARM_ETH_PHY_ID_2				3
+#define ARM_ETH_PHY_ADV_ADJ			    4
+#define ARM_ETH_PHY_OPPO_ADJ 			5
+#define ARM_ETH_PHY_EXT_ADJ 			6
+#define ARM_ETH_PHY_EXT_MODE			18
+#define ARM_ETH_PHY_IRQ_FLAGS			29
+#define ARM_ETH_PHY_IRQ_MASK			30
+#define ARM_ETH_PHY_EXT_CTRL			31
+
+
+/*
+ * PHY_EXT_CTRL
+ */
+#define EXT_CTRL_LPBK			  (1 << 14)
+#define EXT_CTRL_SPEED_MASK(n)	  (n << 2)
+#define EXT_CTRL_SPEED_10_HD	  (1 << 2)  
+#define EXT_CTRL_SPEED_100_HD	  (2 << 2) 
+#define EXT_CTRL_SPEED_10_FD	  (5 << 2)
+#define EXT_CTRL_SPEED_100_FD	  (6 << 2)
+#define EXT_CTRL_AUTODONE		  (1 << 12)
+
+ /* Поле управления передачи пакета - 32-разрядное целое - длина пакета в байтах */
+
+ /* Поле состояния передачи пакета - 32-разрядное целое */
+ #define ARM_ETH_PKT_RCOUNT(x)		((x) << 16)
+ #define ARM_ETH_PKT_RL				(1 << 20)
+ #define ARM_ETH_PKT_LC				(1 << 21)
+ #define ARM_ETH_PKT_UR				(1 << 22)
+
+ /* Поле состояния приёма пакета - 32-разрядное целое */
+ #define ARM_ETH_PKT_LENGTH(x)		((x) & 0xFFFF)
+ #define ARM_ETH_PKT_PF_ERR			(1 << 16)
+ #define ARM_ETH_PKT_CF_ERR			(1 << 17)
+ #define ARM_ETH_PKT_LF_ERR			(1 << 18)
+ #define ARM_ETH_PKT_SF_ERR			(1 << 19)
+ #define ARM_ETH_PKT_LEN_ERR		(1 << 20)
+ #define ARM_ETH_PKT_DN_ERR			(1 << 21)
+ #define ARM_ETH_PKT_CRC_ERR		(1 << 22)
+ #define ARM_ETH_PKT_SMB_ERR		(1 << 23)
+ #define ARM_ETH_PKT_MCA_ERR		(1 << 24)
+ #define ARM_ETH_PKT_BCA_ERR		(1 << 25)
+ #define ARM_ETH_PKT_UCA_ERR		(1 << 24)
 
  /* Поле управления передачи пакета - 32-разрядное целое - длина пакета в байтах */
 

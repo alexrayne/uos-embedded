@@ -533,6 +533,10 @@ uos_valid_memory_address (void *ptr)
 
 	if (u >= ARM_SRAM_BASE && u < ARM_SRAM_BASE + ARM_SRAM_SIZE)
 		return 1;
+#if defined(ARM_1986BE1)
+	if (u >= 0x20100000 && u < 0x20104000)
+		return 1;
+#endif
 	return 0;
 }
 

@@ -8,7 +8,7 @@ OUTPUT_ARCH(arm)
 ENTRY(_start_)
 MEMORY
 {
-  text   (rx)  : ORIGIN = 0x00006000,	LENGTH = 128k
+  text   (rx)  : ORIGIN = 0x00000000,	LENGTH = 128k
   data   (rwx) : ORIGIN = 0x20000000,	LENGTH = 32k-128
   data_hi(rwx) : ORIGIN = 0x20100000,	LENGTH = 16k
 }

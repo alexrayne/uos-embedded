@@ -29,7 +29,7 @@
 typedef volatile unsigned int eth_reg_t;
 
 #define ETH_IRQ			ETHERNET_IRQn		/* pin PB10 - EXT_INT2 */
-#define ETH_MTU			1518		/* maximum ethernet frame length */
+#define ETH_MTU			1500		/* maximum ethernet frame length */
 #define MDR_ETHERNET1_BUF_SIZE		8192
 #define RXBUF_BYTES     4096		/* size of hardware receive buffer */
 

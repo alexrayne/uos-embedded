@@ -70,10 +70,14 @@ mutex_wait (mutex_t *m)
 					task_schedule ();
 				arch_intr_restore (x);
 				return 0;
+			} else {
+				goto further;
 			}
 		}
  		arch_intr_allow (m->irq->irq);
 	}
+
+further:
 
 	task_current->wait = m;
 	list_append (&m->waiters, &task_current->item);

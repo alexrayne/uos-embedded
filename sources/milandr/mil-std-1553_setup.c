@@ -493,7 +493,7 @@ static bool_t status_handler(void *arg)
     } else {
         arch_intr_allow(MIL_STD_1553B2_IRQn);
     }
-
+    mil->nb_irq++;
     return 1;
 }
 
@@ -685,10 +685,17 @@ void milandr_mil1553_init(milandr_mil1553_t *_mil, int port, mem_pool_t *pool, u
     mil->milif.bc_ordinary_send = mil_bc_ordinary_send;
 
 
-    // IRQ 1 (MIL_STD_1553B1_IRQn) никогда не запрещается
-    mask_intr_disabled = ~(1<<MIL_STD_1553B1_IRQn);
-    ARM_NVIC_IPR(MIL_STD_1553B1_IRQn/4) = 0x40400040;
-    mutex_attach_irq(&status_lock, MIL_STD_1553B1_IRQn, status_handler, mil);
+    if (mil->irq == MIL_STD_1553B1_IRQn) {
+        // IRQ 1 (MIL_STD_1553B1_IRQn) никогда не запрещается
+		mask_intr_disabled = ~(1<<MIL_STD_1553B1_IRQn);
+		ARM_NVIC_IPR(MIL_STD_1553B1_IRQn/4) = 0x40400040;
+		mutex_attach_irq(&status_lock, MIL_STD_1553B1_IRQn, status_handler, mil);
+    } else {
+        // IRQ 0 (MIL_STD_1553B2_IRQn) никогда не запрещается
+		mask_intr_disabled = ~(1<<MIL_STD_1553B2_IRQn);
+		ARM_NVIC_IPR(MIL_STD_1553B2_IRQn/4) = 0x40404000;
+		mutex_attach_irq(&status_lock, MIL_STD_1553B2_IRQn, status_handler, mil);
+    }
 
     if (timer) {
         timer->TIM_CNTRL = 0;

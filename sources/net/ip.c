@@ -11,6 +11,9 @@
 #include <net/tcp.h>
 #include <net/arp.h>
 
+const unsigned long IP_ZERO_ADDR = 0;
+const unsigned long IP_BROADCAST_ADDR = 0xFFFFFFFF;
+
 /*
  * Forward an IP packet. It finds an appropriate route for the packet,
  * decrements the TTL value of the packet, adjusts the checksum and outputs

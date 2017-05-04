@@ -664,7 +664,7 @@ find_listen_socket (ip_t *ip, tcp_hdr_t *h, ip_hdr_t *iph)
 	for (ls=ip->tcp_listen_sockets; ls; prev=ls, ls=ls->next) {
 		if (ls->local_port != h->dest)
 			continue;
-		if (memcmp (ls->local_ip, IP_ADDR(0), 4) != 0 &&
+		if (memcmp (ls->local_ip, &IP_ZERO_ADDR, 4) != 0 &&
 		    memcmp (ls->local_ip, iph->dest, 4) != 0)
 			continue;
 
