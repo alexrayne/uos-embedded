@@ -24,7 +24,7 @@ task_t *task_idle;			/* background system task */
 mutex_irq_t mutex_irq [ARCH_INTERRUPTS]; /* interrupt handlers */
 
 #ifndef IDLE_TASK_STACKSZ
-#define IDLE_TASK_STACKSZ   256
+#define IDLE_TASK_STACKSZ   512
 #endif
 
 #define ALIGNED_IDLE_TASK_STACKSZ ((IDLE_TASK_STACKSZ + sizeof(void *) - 1) & ~(sizeof(void *) - 1))
