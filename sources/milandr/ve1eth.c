@@ -29,10 +29,6 @@
 
 #include "ve1eth.h"
 
-#define ETH_STACKSZ      1500
-
-volatile unsigned int speed_out_counter, speed_in_counter, R_MISSED_F, R_OVF, R_SMB_ERR, STAT_COUNT;
-
 task_t *eth_task;
 mutex_t eth_interrupt_mutex;
 list_t  eth_interrupt_handlers;
@@ -174,22 +170,29 @@ void eth_led(void)
 	if(ETH_CRS_GPIO->DATA & (1 <<  PIN(ETH_CRS_LED))) {
 		ETH_CRS_GPIO->CLRTX |= 1 << PIN(ETH_CRS_LED);
 	} else {
-		if(!(ARM_ETH->PHY_STAT & ARM_ETH_PHY_LED_CRS))	{ETH_CRS_GPIO->SETTX |= 1 << PIN(ETH_CRS_LED);} // наличие		
-		else                                            {ETH_CRS_GPIO->CLRTX |= 1 << PIN(ETH_CRS_LED);} // отсутствие
+		if(!(ARM_ETH->PHY_STAT & ARM_ETH_PHY_LED_CRS))	
+			ETH_CRS_GPIO->SETTX |= 1 << PIN(ETH_CRS_LED); // наличие		
+		else                                            
+			ETH_CRS_GPIO->CLRTX |= 1 << PIN(ETH_CRS_LED); // отсутствие
 	}
 
 	// индикация наличия Link сигнала
-	if(!(ARM_ETH->PHY_STAT & ARM_ETH_PHY_LED_LINK))	{ETH_LINK_GPIO->SETTX |= 1 << PIN(ETH_LINK_LED);} 	// наличие
-	else											{ETH_LINK_GPIO->CLRTX |= 1 << PIN(ETH_LINK_LED);} 	// отсутствие		
+	if(!(ARM_ETH->PHY_STAT & ARM_ETH_PHY_LED_LINK))	
+		ETH_LINK_GPIO->SETTX |= 1 << PIN(ETH_LINK_LED);   // наличие
+	else											
+		ETH_LINK_GPIO->CLRTX |= 1 << PIN(ETH_LINK_LED);   // отсутствие		
 	
 	// скорость 100 / 10 мбит
-    if(!(ARM_ETH->PHY_STAT & ARM_ETH_PHY_LED_SPEED)){ETH_SPEED_GPIO->SETTX |= 1 << PIN(ETH_SPEED_LED);} //100 mbit			
-	else											{ETH_SPEED_GPIO->CLRTX |= 1 << PIN(ETH_SPEED_LED);} //10 mbit
+    if(!(ARM_ETH->PHY_STAT & ARM_ETH_PHY_LED_SPEED))
+		ETH_SPEED_GPIO->SETTX |= 1 << PIN(ETH_SPEED_LED); // 100 mbit			
+	else											
+		ETH_SPEED_GPIO->CLRTX |= 1 << PIN(ETH_SPEED_LED); // 10 mbit
 	
 	// режим
-    if(!(ARM_ETH->PHY_STAT & ARM_ETH_PHY_LED_HD))   {ETH_HD_GPIO->SETTX |= 1 << PIN(ETH_HD_LED);} 		// дуплекс			
-	else											{ETH_HD_GPIO->CLRTX |= 1 << PIN(ETH_HD_LED);} 		// полудуплекс
-
+    if(!(ARM_ETH->PHY_STAT & ARM_ETH_PHY_LED_HD))   
+		ETH_HD_GPIO->SETTX |= 1 << PIN(ETH_HD_LED); 	  // дуплекс			
+	else											
+		ETH_HD_GPIO->CLRTX |= 1 << PIN(ETH_HD_LED); 	  // полудуплекс
 }
 
 void eth_set_HASH_table(eth_t *u, uint8_t *value)
@@ -230,41 +233,53 @@ void eth_get_MAC_addr (uint8_t *value)
 
 void eth_debug (eth_t *u, struct _stream_t *stream)
 {
-	uint16_t basic_ctrl,basic_stat,id_phy1,id_phy2,auto_adj,opponent,
-			 ext_adj,ext_man,irq_flg,ext_state;
-
-	basic_ctrl = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 0);
-	basic_stat = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 1);
-	id_phy1 = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 2);
-	id_phy2 = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 3);
-    auto_adj = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 4);
-    opponent = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 5);
-    ext_adj = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 6);
-    ext_man = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 18);
-	irq_flg = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 29);
-	ext_state = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 31);
+	mutex_lock(&u->netif.lock);
+	uint16_t basic_ctrl = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 0);
+	uint16_t basic_stat = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 1);
+	uint16_t id_phy1 = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 2);
+	uint16_t id_phy2 = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 3);
+    uint16_t auto_adj = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 4);
+    uint16_t opponent = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 5);
+    uint16_t ext_adj = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 6);
+    uint16_t ext_man = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 18);
+	uint16_t irq_flg = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 29);
+	uint16_t ext_state = eth_get_phyreg(ARM_ETH_PHY_ADDRESS, 31);
+	uint16_t g_cfg_hi = ARM_ETH->G_CFG_HI;
+	uint16_t g_cfg_low= ARM_ETH->G_CFG_LOW;
+	uint16_t x_cfg = ARM_ETH->X_CFG;
+	uint16_t r_cfg = ARM_ETH->R_CFG;
+	uint16_t imr = ARM_ETH->IMR;
+	uint16_t ifr = ARM_ETH->IFR;
+	uint16_t stat= ARM_ETH->STAT;
+	uint16_t phy_ctrl = ARM_ETH->PHY_CTRL;
+	uint16_t phy_stat = ARM_ETH->PHY_STAT;
+	uint16_t rxbf_head = ARM_ETH->R_HEAD;
+	uint16_t rxbf_tail = ARM_ETH->R_TAIL;
+	uint16_t txbf_head = ARM_ETH->X_HEAD;
+	uint16_t txbf_tail = ARM_ETH->X_TAIL;
 	mutex_unlock (&u->netif.lock);
 
-	printf (stream, "G_CFG_HI = %b\n", ARM_ETH->G_CFG_HI);
-	printf (stream, "G_CFG_LOW = %b\n", ARM_ETH->G_CFG_LOW);
-	printf (stream, "X_CFG = %b\n", ARM_ETH->X_CFG);
-	printf (stream, "R_CFG = %b\n", ARM_ETH->R_CFG);
-	printf (stream, "R_CFG = %b\n", ARM_ETH->R_CFG);
-	printf (stream, "IMR = %b\n", ARM_ETH->IMR);
-	printf (stream, "IFR = %b\n", ARM_ETH->IFR);
-	printf (stream, "STAT = %b\n", ARM_ETH->STAT);
-	printf (stream, "PHY_CTRL = %b\n", ARM_ETH->PHY_CTRL);
-	printf (stream, "PHY_STAT = %b\n", ARM_ETH->PHY_STAT);
-	printf (stream, "PHY_BASIC_CTRL = %b\n", basic_ctrl);
-	printf (stream, "PHY_BASIC_STAT = %b\n", basic_stat);
-	printf (stream, "PHY_ID_1 = %b\n", id_phy1);
-	printf (stream, "PHY_ID_2 = %b\n", id_phy2);
-	printf (stream, "PHY_AUTO_ADJ = %b\n", auto_adj);
-	printf (stream, "PHY_OPPO_ADJ = %b\n", opponent);
-	printf (stream, "PHY_EXT_ADJ = %b\n", ext_adj);
-	printf (stream, "PHY_EXT_MODE = %b\n", ext_man);
-	printf (stream, "PHY_IRQ_FLAGS = %b\n", irq_flg);
-	printf (stream, "PHY_EXT_STAT = %b\n", ext_state);
+	printf (stream, "G_CFG_HI = 0x%04X\n", g_cfg_hi);
+	printf (stream, "G_CFG_LOW= 0x%04X\n", g_cfg_low);
+	printf (stream, "X_CFG = 0x%04X\n", x_cfg);
+	printf (stream, "R_CFG = 0x%04X\n", r_cfg);
+	printf (stream, "IMR = 0x%04X\n", imr);
+	printf (stream, "IFR = 0x%04X\n", ifr);
+	printf (stream, "STAT = 0x%04X\n", stat);
+	printf(stream, "RXBF HEAD:TAIL = %04x:%04x\n", rxbf_head, rxbf_tail);
+	printf(stream, "TXBF HEAD:TAIL = %04x:%04x\n", txbf_head, txbf_tail);
+	printf (stream, "PHY_CTRL = 0x%04X\n", phy_ctrl);
+	printf (stream, "PHY_STAT = 0x%04X\n", phy_stat);
+	printf (stream, "PHY_BASIC_CTRL = 0x%04X\n", basic_ctrl);
+	printf (stream, "PHY_BASIC_STAT = 0x%04X\n", basic_stat);
+	printf (stream, "PHY_ID_1 = 0x%04X\n", id_phy1);
+	printf (stream, "PHY_ID_2 = 0x%04X\n", id_phy2);
+	printf (stream, "PHY_AUTO_ADJ = 0x%04X\n", auto_adj);
+	printf (stream, "PHY_OPPO_ADJ = 0x%04X\n", opponent);
+	printf (stream, "PHY_EXT_ADJ  = 0x%04X\n", ext_adj);
+	printf (stream, "PHY_EXT_MODE = 0x%04X\n", ext_man);
+	printf (stream, "PHY_IRQ_FLAGS= 0x%04X\n", irq_flg);
+	printf (stream, "PHY_EXT_STAT = 0x%04X\n", ext_state);
 }
 
 void eth_restart_autonegotiation(eth_t *u)
@@ -407,7 +422,7 @@ void inline __attribute__((always_inline)) eth_err_0022_correction(void)
 	asm volatile("nop");
 }
 
-void eth_clk_init(void)
+void eth_clk_init (void)
 {	
 	uint32_t temp;
 	
@@ -432,25 +447,36 @@ void eth_clk_init(void)
 }
 
 // инициализация модуля PHY новыми значениями адреса и режима работы
-void eth_phy_init(uint8_t addr, uint8_t mode)
+void eth_phy_init (uint8_t addr, uint8_t mode)
 {
-	ARM_ETH->PHY_CTRL = ARM_ETH_PHY_ADDR(addr) | ARM_ETH_PHY_MODE(mode) /*| ARM_ETH_PHY_NRST*/;
+	// assertion
+	if(addr > 0x1F) {
+		addr = 0x1F;
+		debug_printf ("error parametr addr in eth_phy_init()\n");
+	}
+	if(mode > 0x07) {
+		mode = 0x07;
+		debug_printf ("error parametr mode in eth_phy_init()\n");
+	}
+	
+	ARM_ETH->PHY_CTRL = ARM_ETH_PHY_ADDR(addr) | ARM_ETH_PHY_MODE(mode) | ARM_ETH_PHY_NRST;
+	
 	while((ARM_ETH->PHY_STAT & ARM_ETH_PHY_READY) == 0);	//ждем пока модуль в состоянии сброса
 }
 
-void eth_mac_init(void)
+void eth_mac_init (void)
 {	
 	// сброс приемника и передатчика RRST=1, XRST=1 автоматическое изменение указателей запрещено
 	ARM_ETH->IMR = 0;
 	ARM_ETH->IFR = 0;
-	ARM_ETH->G_CFG_HI = ARM_ETH_XRST | ARM_ETH_RRST; 	
 	
+	ARM_ETH->G_CFG_HI = ARM_ETH_XRST | ARM_ETH_RRST; 				// Включение состояния сброса приёмника и передатчика
 	//memset((uint8_t*)ARM_ETH_BUF_BASE_R, 0, ARM_ETH_BUF_SIZE_R);
-	
-	ARM_ETH->G_CFG_HI |=  ARM_ETH_DBG_XF_EN | ARM_ETH_DBG_RF_EN; // разрешить автоматическую установку указателей приёмника и передатчика - lля FIFO
+	//ARM_ETH->G_CFG_HI |=  ARM_ETH_DBG_XF_EN | ARM_ETH_DBG_RF_EN;  // разрешить автоматическую установку указателей приёмника и передатчика - lля FIFO
 	
 	ARM_ETH->G_CFG_LOW = ARM_ETH_BUFF_MODE(ARM_ETH_BUFF_LINEAL) | 	// буфферы в линейном режиме	
-	/*ARM_ETH_PAUSE_EN  |*/											// режим автоматической обработки пакета PAUSE														
+	/*ARM_ETH_PAUSE_EN|*/											// режим автоматической обработки пакета PAUSE														
+	ARM_ETH_DTRM_EN |												// режим определенного времени доставки
 	ARM_ETH_COLWND(0x80);											// размер окна коллизий (в битовых интервалах)
 																	// сброс флагов IRF производится записью в IRF	
 	
@@ -463,20 +489,22 @@ void eth_mac_init(void)
 	ARM_ETH->HASH[4] = 0; 	 ARM_ETH->HASH[5] = 0;
 	ARM_ETH->HASH[6] = 0x80; ARM_ETH->HASH[7] = 0;
 	
+	// Настройки формирования очереди пакетов (влияют при включенном ARM_ETH_DTRM_EN)
 	// межпакетный интервал для полнодуплексного режима
 	ARM_ETH->IPG = 0x0060;
 	// предделитель BAG и JitterWnd
-	ARM_ETH->PSC = 0x0031;;	  
+	ARM_ETH->PSC = 0x0032;	  
 	// период следования пакетов
 	ARM_ETH->BAG = 0x0064; 
 	// джиттер при передачи пакетов
 	ARM_ETH->JITTER_WND = 0x0004;
 
+
 	// управление приемником 
 	ARM_ETH->R_CFG =
 	ARM_ETH_EN |	 								    /* разрешение работы приемника */
-	ARM_ETH_EVNT_MODE(ARM_ETH_EVNT_RFIFO_NOT_FULL)|		/* событие - буфер не полон	*/
-	/*ARM_ETH_CF_EN| */									/* Разрешение приема управляющих пакетов */
+	ARM_ETH_EVNT_MODE(ARM_ETH_EVNT_RX_DONE)|			/* событие -  прием пакета завершен	*/
+	ARM_ETH_CF_EN| 										/* разрешение приема управляющих пакетов */
 	ARM_ETH_UCA_EN |									/* прием пакетов с MAC указанном в регистре MAC_Address */
 	ARM_ETH_BCA_EN ;									/* прием широковещательных MAC */
 	/*ARM_ETH_AC_EN|;*/									/* прием без фильтрации */
@@ -484,16 +512,14 @@ void eth_mac_init(void)
 
 	// управление передатчиком
 	ARM_ETH->X_CFG =
-	ARM_ETH_EN |	 								/* разрешение работы передатчика */
-	ARM_ETH_EVNT_MODE(ARM_ETH_EVNT_XFIFO_AEMPTY)| 		/* событие - буфер почти пуст */
+	ARM_ETH_EN |	 									/* разрешение работы передатчика */
+	ARM_ETH_EVNT_MODE(ARM_ETH_EVNT_TX_DONE)| 			/* событие - отправка пакета завершена */
 	ARM_ETH_PAD_EN |									/* разрешено дополнение PAD'ми */
 	ARM_ETH_PRE_EN |									/* дополнение преамбулой */
 	ARM_ETH_CRC_EN | 									/* дополнение CRC */
 	ARM_ETH_IPG_EN |									/* выдержка паузы */
-	ARM_ETH_RTRYCNT(10);								/* количество попыток обмена */
+	ARM_ETH_RTRYCNT(0x0F);								/* количество попыток обмена */
 	
-	//ARM_ETH->STAT &= ~ARM_ETH_R_COUNT(7);
-	ARM_ETH->PHY_CTRL |= ARM_ETH_PHY_NRST;
 	ARM_ETH->G_CFG_HI &= ~(ARM_ETH_XRST | ARM_ETH_RRST);	//RRST=0, XRST=0 штатный режим работы	
 }
 
@@ -593,7 +619,7 @@ void eth_controller_init(const uint8_t *MACAddr, uint8_t PHYMode)
 	ARM_ETH->IFR=0xFFFF;
 	eth_port_init();
 	eth_clk_init();
-	eth_phy_init(ARM_ETH_PHY_ADDRESS,PHYMode);	//PHY address 0x1C
+	eth_phy_init(ARM_ETH_PHY_ADDRESS, PHYMode);	//PHY address 0x1C
 	eth_mac_init();	
 	memcpy((void*)ARM_ETH->MAC_ADDR, MACAddr, 6);
  #ifdef ETH_USE_DMA
@@ -629,7 +655,6 @@ uint16_t eth_get_phyreg(uint8_t addr, uint8_t num)
 
 void eth_send_processing(const void *buf, uint16_t frame_length)
 {
- speed_out_counter++;
  #ifdef ETH_USE_DMA
 	eth_send_frame_dma(buf,frame_length);	
  #else
@@ -639,8 +664,6 @@ void eth_send_processing(const void *buf, uint16_t frame_length)
 
 uint32_t eth_read_processing(void *buf)
 {
- speed_in_counter++;
- speed_in_counter++;
  #ifdef ETH_USE_DMA
 	return eth_read_frame_dma(buf);
  #else
@@ -1056,7 +1079,7 @@ bool_t eth_output(eth_t *u, buf_t *p, small_uint_t prio)
     mutex_lock (&u->tx_lock);
     
     // Exit if link has failed 
-    if((p->tot_len < /*4*/18) || (p->tot_len > ETH_MTU) || (ARM_ETH->PHY_STAT & ARM_ETH_PHY_LED_LINK)) {
+    if((p->tot_len < 4/*18*/) || (p->tot_len > ETH_MTU) || (ARM_ETH->PHY_STAT & ARM_ETH_PHY_LED_LINK)) {
         u->netif.out_errors++;       
 //debug_printf ("eth_output: transmit %d bytes, link failed\n", p->tot_len);
         buf_free (p);
