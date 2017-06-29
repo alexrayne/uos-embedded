@@ -96,12 +96,12 @@ static inline void bq_put_array (bq_t *bq, const void *buffer, unsigned long siz
 {
     unsigned long avail_to_end = bq_avail_put_to_end (bq);
     if (size <= avail_to_end) {
-        _UC(uos) memcpy (bq->array + bq->puti, buffer, size);
+        memcpy (bq->array + bq->puti, buffer, size);
         bq->puti += size;
         bq->puti &= bq->mask;
     } else {
-        _UC(uos) memcpy (bq->array + bq->puti, buffer, avail_to_end);
-        _UC(uos) memcpy (bq->array, (uint8_t *)buffer + avail_to_end, size - avail_to_end);
+        memcpy (bq->array + bq->puti, buffer, avail_to_end);
+        memcpy (bq->array, (uint8_t *)buffer + avail_to_end, size - avail_to_end);
         bq->puti = size - avail_to_end;
     }
 }
@@ -110,12 +110,12 @@ static inline void bq_get_array (bq_t *bq, void *buffer, unsigned long size)
 {
     unsigned long avail_to_end = bq_avail_get_to_end (bq);
     if (size <= avail_to_end) {
-        _UC(uos) memcpy (buffer, bq->array + bq->geti, size);
+        memcpy (buffer, bq->array + bq->geti, size);
         bq->geti += size;
         bq->geti &= bq->mask;
     } else {
-        _UC(uos) memcpy (buffer, bq->array + bq->geti, avail_to_end);
-        _UC(uos) memcpy ((uint8_t *)buffer + avail_to_end, bq->array, size - avail_to_end);
+        memcpy (buffer, bq->array + bq->geti, avail_to_end);
+        memcpy ((uint8_t *)buffer + avail_to_end, bq->array, size - avail_to_end);
         bq->geti = size - avail_to_end;
     }
 }
