@@ -22,27 +22,34 @@ static void copy_to_cyclogram_rxq(milandr_mil1553_t *mil, mil_slot_desc_t slot)
         mil->nb_lost++;
     } else {
         unsigned wrc = (slot.words_count == 0 ? 32 : slot.words_count);
-        uint16_t *que_elem = mem_alloc_dirty(mil->pool, 2*wrc + 8);
-        if (!que_elem) {
+#ifdef MIL_RX_PACKETS_WITH_TIMESTAMPS
+        uint32_t *que_elem32 = mem_alloc_dirty(mil->pool, 2*wrc + 12);
+#else
+        uint32_t *que_elem32 = mem_alloc_dirty(mil->pool, 2*wrc + 8);
+#endif
+        if (!que_elem32) {
             mil->nb_lost++;
             return;
         }
-        mem_queue_put(&mil->cyclogram_rxq, que_elem);
+        mem_queue_put(&mil->cyclogram_rxq, que_elem32);
         // Номер слота всегда 0
-        *que_elem = 0;
-        *(que_elem + 1) = 0;
+        *que_elem32++ = 0;
+#ifdef MIL_RX_PACKETS_WITH_TIMESTAMPS
+        // Копируем текущее время
+        *que_elem32++ = mil->operation_time;
+#endif
         // Копируем дескриптор слота
-        memcpy(que_elem + 2, &slot, 4);
+        memcpy(que_elem32++, &slot, 4);
         // Копируем данные слота
         arm_reg_t *preg = &mil->reg->DATA[slot.subaddr * MIL_SUBADDR_WORDS_COUNT];
 
 
 #if BC_DEBUG
-        uint16_t *que_elem_debug = que_elem + 4; // Область данных
+        uint16_t *que_elem_debug = (uint16_t *)que_elem32; // Область данных
         int wordscount = wrc;
 #endif
 
-        que_elem += 4;  // Область данных
+        uint16_t *que_elem = (uint16_t *) que_elem32;  // Область данных
         while (wrc) {
             *que_elem++ = *preg++;
             wrc--;
@@ -68,27 +75,34 @@ static void copy_to_urgent_rxq(milandr_mil1553_t *mil, mil_slot_desc_t slot)
         mil->nb_lost++;
     } else {
         unsigned wrc = (slot.words_count == 0 ? 32 : slot.words_count);
-        uint16_t *que_elem = mem_alloc_dirty(mil->pool, 2*wrc + 8);
-        if (!que_elem) {
+#ifdef MIL_RX_PACKETS_WITH_TIMESTAMPS
+        uint32_t *que_elem32 = mem_alloc_dirty(mil->pool, 2*wrc + 12);
+#else
+        uint32_t *que_elem32 = mem_alloc_dirty(mil->pool, 2*wrc + 8);
+#endif
+        if (!que_elem32) {
             mil->nb_lost++;
             return;
         }
-        mem_queue_put(&mil->urgent_rxq, que_elem);
+        mem_queue_put(&mil->urgent_rxq, que_elem32);
         // Первый байт номера слота всегда 1
-        *que_elem = 1;
-        *(que_elem + 1) = 0;
+        *que_elem32++ = 1;
+#ifdef MIL_RX_PACKETS_WITH_TIMESTAMPS
+        // Копируем текущее время
+        *que_elem32++ = mil->operation_time;
+#endif
         // Копируем дескриптор слота
-        memcpy(que_elem + 2, &slot, 4);
+        memcpy(que_elem32++, &slot, 4);
         // Копируем данные слота
         arm_reg_t *preg = &mil->reg->DATA[slot.subaddr * MIL_SUBADDR_WORDS_COUNT];
 
 
 #if BC_DEBUG
-        uint16_t *que_elem_debug = que_elem + 4; // Область данных
+        uint16_t *que_elem_debug = (uint16_t *)que_elem32; // Область данных
         int wordscount = wrc;
 #endif
 
-        que_elem += 4;  // Область данных
+        uint16_t *que_elem = (uint16_t *) que_elem32;  // Область данных
         while (wrc) {
             *que_elem++ = *preg++;
             wrc--;
@@ -110,6 +124,10 @@ static void copy_to_urgent_rxq(milandr_mil1553_t *mil, mil_slot_desc_t slot)
 
 void start_slot(milandr_mil1553_t *mil, mil_slot_desc_t slot, uint16_t *pdata)
 {
+#ifdef MIL_DETAILED_TRX_STAT
+    mil->tx_stat[slot.addr][slot.subaddr]++;
+#endif
+    
     if (slot.command.req_pattern == 0 || slot.command.req_pattern == 0x1f) {
 //        debug_printf("control command %x %x %x\n", slot.command.command, slot.command.control, slot.command.addr);
         mil->reg->CommandWord1 =
@@ -208,6 +226,9 @@ void mil_std_1553_bc_handler(milandr_mil1553_t *mil, const unsigned short status
                 wc = mil->urgent_desc.words_count;
                 mil->nb_words += (wc>0?wc:32);
             }
+#ifdef MIL_DETAILED_TRX_STAT
+            mil->rx_stat[mil->urgent_desc.command.addr][mil->urgent_desc.command.req_pattern]++;
+#endif
         } else {
             if (mil->cur_slot != 0) {
                 mil_slot_desc_t slot = mil->cur_slot->desc;
@@ -220,6 +241,9 @@ void mil_std_1553_bc_handler(milandr_mil1553_t *mil, const unsigned short status
                     }
                     mil->nb_words += (wc>0?wc:32);
                 }
+#ifdef MIL_DETAILED_TRX_STAT
+            mil->rx_stat[slot.addr][slot.subaddr]++;
+#endif
             }
         }
 

@@ -40,6 +40,7 @@
 #define TOGLE(n)	((ARM_GPIOB->DATA & (n))?(ARM_GPIOB->DATA &= ~(n)):(ARM_GPIOB->DATA |= (n)))
 //#define MIL_STD_SUBADDR_WORD_INDEX(n)	(n*MIL_SUBADDR_WORDS_COUNT)
 
+#define MIL_ADDR_COUNT	    32
 #define MIL_SUBADDR_COUNT	32
 
 struct mil_txbuf_t
@@ -68,7 +69,10 @@ struct milandr_mil1553_t
     mil_slot_t          *cyclogram;
     mil_slot_t          *cur_slot;
     unsigned            nb_slots;
-    unsigned            period_ms;
+    unsigned long       period_ms;
+#ifdef MIL_RX_PACKETS_WITH_TIMESTAMPS
+    unsigned long       operation_time;
+#endif
     mil_slot_desc_t     urgent_desc;
     uint16_t            urgent_data[MIL_SUBADDR_WORDS_COUNT];
     int                 is_running;
@@ -87,6 +91,11 @@ struct milandr_mil1553_t
     unsigned            queue_len;
     unsigned            nb_transmits;
     unsigned            nb_irq;
+    
+#ifdef MIL_DETAILED_TRX_STAT
+    uint8_t             tx_stat[MIL_ADDR_COUNT][MIL_SUBADDR_COUNT];
+    uint8_t             rx_stat[MIL_ADDR_COUNT][MIL_SUBADDR_COUNT];
+#endif
 };
 
 typedef struct milandr_mil1553_t milandr_mil1553_t;
