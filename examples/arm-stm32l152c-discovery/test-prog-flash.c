@@ -1,10 +1,10 @@
 #include <runtime/lib.h>
 #include <kernel/uos.h>
 #include <timer/timer.h>
-#include <stm32l/prog_flash.h>
+#include <stm32l1/prog_flash.h>
 
 const char *flash_name = "STM32L program flash";
-stm32l_prog_flash_t flash;
+stm32l1_prog_flash_t flash;
 
 #define FLASH_START		0x08006000
 #define FLASH_LIMIT		0x08040000
@@ -50,7 +50,7 @@ void hello (void *arg)
     t0 = timer_milliseconds(&timer);
     for (i = 0; i < flash_nb_pages(f); ++i) {
         memset(buf, 0, flash_page_size(f));
-        if (flash_read(f, i, buf, flash_page_size(f)) != FLASH_ERR_OK) {
+        if (flash_read(f, i, 0, buf, flash_page_size(f)) != FLASH_ERR_OK) {
             debug_printf("READ FAILED!\n");
             for (;;);
         }
@@ -74,7 +74,7 @@ void hello (void *arg)
         for (j = 0; j < flash_page_size(f) / 4; ++j)
             buf[j] = cnt++;
 
-        if (flash_write(f, i, buf, flash_page_size(f)) != FLASH_ERR_OK) {
+        if (flash_write(f, i, 0, buf, flash_page_size(f)) != FLASH_ERR_OK) {
             debug_printf("FAIL!\n");
             for (;;);
         }
@@ -90,7 +90,7 @@ void hello (void *arg)
     cnt = 0;
     for (i = 0; i < flash_nb_pages(f); ++i) {
         memset(buf, 0, flash_page_size(f));
-        if (flash_read(f, i, buf, flash_page_size(f)) != FLASH_ERR_OK) {
+        if (flash_read(f, i, 0, buf, flash_page_size(f)) != FLASH_ERR_OK) {
             debug_printf("READ FAILED!\n");
             for (;;);
         }
@@ -121,7 +121,7 @@ void hello (void *arg)
     cnt = 0;
     for (i = 0; i < flash_nb_pages(f); ++i) {
         memset(buf, 0, flash_page_size(f));
-        if (flash_read(f, i, buf, flash_page_size(f)) != FLASH_ERR_OK) {
+        if (flash_read(f, i, 0, buf, flash_page_size(f)) != FLASH_ERR_OK) {
             debug_printf("READ FAILED!\n");
             for (;;);
         }
@@ -164,7 +164,7 @@ void hello (void *arg)
     t0 = timer_milliseconds(&timer);
     for (i = 0; i < flash_nb_pages(f); ++i) {
         memset(buf, 0, flash_page_size(f));
-        if (flash_read(f, i, buf, flash_page_size(f)) != FLASH_ERR_OK) {
+        if (flash_read(f, i, 0, buf, flash_page_size(f)) != FLASH_ERR_OK) {
             debug_printf("READ FAILED!\n");
             for (;;);
         }
@@ -188,7 +188,7 @@ void hello (void *arg)
     for (i = 0; i < flash_page_size(f) / 4 / 3; ++i)
 		buf[i] = cnt++;
 
-	if (flash_write(f, SHORT_WRITE_PAGE, buf, flash_page_size(f) / 3) != FLASH_ERR_OK) {
+	if (flash_write(f, SHORT_WRITE_PAGE, 0, buf, flash_page_size(f) / 3) != FLASH_ERR_OK) {
 		debug_printf("FAIL!\n");
 		for (;;);
 	}
@@ -200,7 +200,7 @@ void hello (void *arg)
     memset(buf, 0, sizeof(buf));
     t0 = timer_milliseconds(&timer);
     cnt = 0;
-	if (flash_read(f, SHORT_WRITE_PAGE, buf, flash_page_size(f) / 3) != FLASH_ERR_OK) {
+	if (flash_read(f, SHORT_WRITE_PAGE, 0, buf, flash_page_size(f) / 3) != FLASH_ERR_OK) {
 		debug_printf("READ FAILED!\n");
 		for (;;);
 	}
@@ -220,7 +220,7 @@ void hello (void *arg)
     for (i = 0; i < sizeof(buf) / 4; ++i)
 		buf[i] = cnt++;
 
-	if (flash_write(f, SHORT_WRITE_PAGE + 1, buf, sizeof(buf)) != FLASH_ERR_OK) {
+	if (flash_write(f, SHORT_WRITE_PAGE + 1, 0, buf, sizeof(buf)) != FLASH_ERR_OK) {
 		debug_printf("FAIL!\n");
 		for (;;);
 	}
@@ -232,7 +232,7 @@ void hello (void *arg)
     memset(buf, 0, sizeof(buf));
     t0 = timer_milliseconds(&timer);
     cnt = 0;
-	if (flash_read(f, SHORT_WRITE_PAGE + 1, buf, sizeof(buf)) != FLASH_ERR_OK) {
+	if (flash_read(f, SHORT_WRITE_PAGE + 1, 0, buf, sizeof(buf)) != FLASH_ERR_OK) {
 		debug_printf("READ FAILED!\n");
 		for (;;);
 	}
@@ -255,9 +255,13 @@ void uos_init (void)
 {
 	debug_printf("\nTesting %s\n", flash_name);
 
-	timer_init(&timer, KHZ, 1);
+#ifdef NSEC_TIMER
+    timer_init_ns (&timer, KHZ, 1000000);
+#else
+	timer_init (&timer, KHZ, 10);
+#endif
 
-	stm32l_prog_flash_init(&flash, FLASH_START, FLASH_LIMIT - FLASH_START);
+	stm32l1_prog_flash_init(&flash, FLASH_START, FLASH_LIMIT - FLASH_START);
 
 	task_create (hello, &flash, "hello", 1, task, sizeof (task));
 }

@@ -213,6 +213,8 @@ struct _spimif_t
     int (* trx)(spimif_t *spi, spi_message_t *msg);
 };
 
+#define to_spimif(x)   ((spimif_t*)&(x)->spimif)
+
 //
 // Структура сообщения SPI.
 //
@@ -221,7 +223,7 @@ struct _spi_message_t {
     // требуется передавать каких-либо определённых данных (только приём).
     void        *tx_data;
     // Указатель на буфер для принимаемых данных. Задать 0, если не
-    // требуется сохранять принимаемый массив (только передачи).
+    // требуется сохранять принимаемый массив (только передача).
     void        *rx_data;
     // Количество слов в сообщении.
     unsigned    word_count;
@@ -240,4 +242,4 @@ int spim_trx(spimif_t *spi, spi_message_t *msg)
     return spi->trx(spi, msg);
 }
 
-#endif
+#endif // __SPI_MASTER_INTERFACE_H__

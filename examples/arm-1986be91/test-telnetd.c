@@ -61,17 +61,6 @@ mem_cmd (stream_t *stream)
 	printf (stream, "Free memory: %u bytes\n", mem_available (&pool));
 
 	putchar (stream, '\n');
-	task_print (stream, 0);
-	task_print (stream, (task_t*) stack_console);
-	task_print (stream, (task_t*) stack_telnet);
-	for (n=0; n<MAXSESS; ++n)
-		if (streamtab[n])
-			task_print (stream, (task_t*) tasktab[n]);
-	task_print (stream, (task_t*) ip.stack);
-	task_print (stream, (task_t*) eth.stack);
-	//task_print (stream, (task_t*) uart.rstack);
-
-	putchar (stream, '\n');
 }
 
 static void
@@ -411,8 +400,8 @@ void uos_init (void)
 {
 	/* Используем только внутреннюю память.
 	 * Оставляем 256 байтов для задачи "idle". */
-	extern unsigned __bss_end[], _estack[];
-	mem_init (&pool, (unsigned) __bss_end, (unsigned) _estack - 256);
+	extern unsigned long __bss_end, _estack;
+	mem_init (&pool, (unsigned) &__bss_end, (unsigned) &_estack - 256);
 
 	timer_init (&timer, KHZ, 50);
 	uart_init (&uart, 1, PRIO_UART, KHZ, 115200);

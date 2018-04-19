@@ -48,14 +48,24 @@ static void set_crystal(gpanel_t *gp, int num) {
 		/* Кристалл #2. */
 		gp->DATA = (unsigned*) LCD_DATA2;
 		gp->CMD = (unsigned*) LCD_CMD2;
+#ifdef ARM_1986BE9
+		ARM_GPIOE->DATA &= ~(1 << PORTE_E1 | 1 << PORTE_A0);
+		ARM_GPIOE->DATA |= 1 << PORTE_E2;
+#else
 		ARM_GPIOE->CLRTX = (1 << PORTE_E1 | 1 << PORTE_A0);
 		ARM_GPIOE->SETTX = 1 << PORTE_E2;
+#endif
 	} else {
 		/* Кристалл #1. */
 		gp->DATA = (unsigned*) LCD_DATA1;
 		gp->CMD = (unsigned*) LCD_CMD1;
+#ifdef ARM_1986BE9
+		ARM_GPIOE->DATA &= ~(1 << PORTE_E2 | 1 << PORTE_A0);
+		ARM_GPIOE->DATA |= 1 << PORTE_E1;
+#else
 		ARM_GPIOE->CLRTX = (1 << PORTE_E2 | 1 << PORTE_A0);
 		ARM_GPIOE->SETTX = 1 << PORTE_E1;
+#endif
 	}
 	udelay(8);
 }
@@ -207,7 +217,11 @@ void gpanel_init(gpanel_t *gp, const gpanel_font_t *font) {
 		udelay(8);
 		//}
 	}
+#ifdef ARM_1986BE9
+    ARM_GPIOE->DATA |= (1 << PORTE_E2) | (1 << PORTE_E1);
+#else
 	ARM_GPIOE->SETTX = (1 << PORTE_E2) | (1 << PORTE_E1);
+#endif
 	/*	gpanel_clear(gp, 1);*/
 }
 
@@ -247,7 +261,11 @@ void gpanel_clear(gpanel_t *gp, unsigned color) {
 		udelay(8);
 		wait_status(gp, ONOFF);
 	}
-	ARM_GPIOE->SETTX = (1 << PORTE_E2) | (1 << PORTE_E1);
+#ifdef ARM_1986BE9
+	ARM_GPIOE->DATA |= (1 << PORTE_E2) | (1 << PORTE_E1);
+#else
+    ARM_GPIOE->SETTX = (1 << PORTE_E2) | (1 << PORTE_E1);
+#endif
 	gp->row = 0;
 	gp->col = 0;
 }
@@ -286,7 +304,11 @@ void gpanel_pixel(gpanel_t *gp, int x, int y, int color) {
 
 	*gp->DATA = (unsigned char) data;
 	udelay(8);
+#ifdef ARM_1986BE9
+    ARM_GPIOE->DATA |= (1 << PORTE_E2) | (1 << PORTE_E1);
+#else
 	ARM_GPIOE->SETTX = (1 << PORTE_E2) | (1 << PORTE_E1);
+#endif
 }
 
 /*
@@ -363,7 +385,11 @@ static void graw_glyph8(gpanel_t *gp, unsigned width, unsigned height,
 		*gp->DATA = data[i];
 		udelay(8);
 	}
+#ifdef ARM_1986BE9
+    ARM_GPIOE->DATA |= (1 << PORTE_E2) | (1 << PORTE_E1);
+#else
 	ARM_GPIOE->SETTX = (1 << PORTE_E2) | (1 << PORTE_E1);
+#endif
 }
 
 /*

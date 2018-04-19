@@ -78,6 +78,12 @@ mutex_wait (mutex_t *m)
 	}
 
 further:
+	
+	if (m->active) {
+	    /* Mutex was already activated, so just continue current tast. */
+ 		arch_intr_restore (x);
+ 		return m->saved_msg;
+	}
 
 	task_current->wait = m;
 	list_append (&m->waiters, &task_current->item);

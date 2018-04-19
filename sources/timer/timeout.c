@@ -24,19 +24,34 @@ void timeout_set_signal (timeout_t *to, void *signal)
 
 void timeout_set_value (timeout_t *to, unsigned long interval_msec)
 {
-#ifdef USEC_TIMER
-    to->interval = interval_msec * 1000;
+#if defined(NSEC_TIMER)
+    to->interval = (unsigned long long) interval_msec * 1000000UL;
+#elif defined(USEC_TIMER)
+    to->interval = (unsigned long long) interval_msec * 1000UL;
 #else
     to->interval = interval_msec;
 #endif
 }
 
-void timeout_set_value_us (timeout_t *to, unsigned long interval_usec)
+void timeout_set_value_us (timeout_t *to, unsigned long long interval_usec)
 {
-#ifdef USEC_TIMER
+#if defined(NSEC_TIMER)
+    to->interval = interval_usec * 1000;
+#elif defined(USEC_TIMER)
     to->interval = interval_usec;
 #else
     to->interval = interval_usec / 1000;
+#endif
+}
+
+void timeout_set_value_ns (timeout_t *to, unsigned long long interval_nsec)
+{
+#if defined(NSEC_TIMER)
+    to->interval = interval_nsec;
+#elif defined(USEC_TIMER)
+    to->interval = interval_nsec / 1000;
+#else
+    to->interval = interval_nsec / 1000000;
 #endif
 }
 

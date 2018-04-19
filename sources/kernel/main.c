@@ -39,6 +39,7 @@ bool_t task_need_schedule;
 void task_schedule ()
 {
 	task_t *new;
+
 	task_need_schedule = 0;
 	new = task_policy ();
 	if (new != task_current) {
@@ -61,12 +62,18 @@ mutex_activate (mutex_t *m, void *message)
 	if (! m->item.next)
 		mutex_init (m);
 
-	while (! list_is_empty (&m->waiters)) {
-		t = (task_t*) list_first (&m->waiters);
-		assert (t->wait == m);
-		t->wait = 0;
-		t->message = message;
-		task_activate (t);
+    if (list_is_empty (&m->waiters)) {
+        m->active = 1;
+        m->saved_msg = message;
+        return;
+    } else {
+	    while (! list_is_empty (&m->waiters)) {
+		    t = (task_t*) list_first (&m->waiters);
+		    assert (t->wait == m);
+		    t->wait = 0;
+		    t->message = message;
+		    task_activate (t);
+	    }
 	}
 
 	/* Activate groups. */

@@ -20,7 +20,11 @@ void hello (void *arg)
 void uos_init (void)
 {
 	debug_printf ("\nTesting timer.\n");
+#ifdef NSEC_TIMER
+    timer_init_ns (&timer, KHZ, 10000000);
+#else
 	timer_init (&timer, KHZ, 10);
+#endif
 	task_create (hello, "Timer", "hello", 1, task, sizeof (task));
 }
 

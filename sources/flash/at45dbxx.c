@@ -274,7 +274,7 @@ static int read_one_page(flashif_t *flash, unsigned address,
 typedef int (* io_func)(flashif_t *flash, unsigned address, 
                         void *data, unsigned size);
                 
-static int cyclic_func(flashif_t *flash, unsigned address, 
+static int cyclic_func(flashif_t *flash, unsigned address,
                         void *data, unsigned size, io_func func)
 {
     int res;
@@ -300,17 +300,17 @@ static int cyclic_func(flashif_t *flash, unsigned address,
     return FLASH_ERR_OK;
 }
 
-static int at45dbxx_write(flashif_t *flash, unsigned page_num, 
+static int at45dbxx_write(flashif_t *flash, unsigned page_num, unsigned offset,
                         void *data, unsigned size)
 {
-    return cyclic_func(flash, at45dbxx_page_address(flash, page_num),
+    return cyclic_func(flash, at45dbxx_page_address(flash, page_num) + offset,
         data, size, write_one_page);
 }
 
-static int at45dbxx_read(flashif_t *flash, unsigned page_num, 
+static int at45dbxx_read(flashif_t *flash, unsigned page_num, unsigned offset,
                         void *data, unsigned size)
 {
-    return cyclic_func(flash, at45dbxx_page_address(flash, page_num),
+    return cyclic_func(flash, at45dbxx_page_address(flash, page_num) + offset,
         data, size, read_one_page);
 }
 

@@ -22,9 +22,6 @@ void command (int c)
 	case 't' & 037:
 		printf (&debug, "\nFree memory: %u bytes\n\n",
 			mem_available (&pool));
-		task_print (&debug, 0);
-		task_print (&debug, (task_t*) stack_poll);
-		task_print (&debug, (task_t*) eth.stack);
 		putchar (&debug, '\n');
 		break;
 	}
@@ -60,8 +57,8 @@ void uos_init (void)
 {
 	/* Используем только внутреннюю память.
 	 * Оставляем 256 байтов для задачи "idle". */
-	extern unsigned __bss_end[], _estack[];
-	mem_init (&pool, (unsigned) __bss_end, (unsigned) _estack - 256);
+	extern unsigned long __bss_end, _estack;
+	mem_init (&pool, (unsigned) &__bss_end, (unsigned) &_estack - 256);
 
 	puts (&debug, "\nTesting Ethernet.\n");
 	printf (&debug, "Free %u bytes\n", mem_available (&pool));

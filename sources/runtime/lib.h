@@ -32,6 +32,8 @@ extern "C" {
 #include <runtime/assert.h>
 #include <runtime/list.h>
 
+unsigned long khz();
+
 #ifndef __LINUX__
 void qsort (void *a, size_t n, size_t es,
 	int (*cmp)(const void*, const void*));

@@ -275,17 +275,17 @@ static int cyclic_func(flashif_t *flash, unsigned address,
     return FLASH_ERR_OK;
 }
 
-static int m25pxx_write(flashif_t *flash, unsigned page_num, 
+static int m25pxx_write(flashif_t *flash, unsigned page_num, unsigned offset, 
                         void *data, unsigned size)
 {
-    return cyclic_func(flash, page_num * flash_page_size(flash),
+    return cyclic_func(flash, page_num * flash_page_size(flash) + offset,
         data, size, write_one_page);
 }
 
-static int m25pxx_read(flashif_t *flash, unsigned page_num, 
+static int m25pxx_read(flashif_t *flash, unsigned page_num, unsigned offset,
                         void *data, unsigned size)
 {
-    return cyclic_func(flash, page_num * flash_page_size(flash),
+    return cyclic_func(flash, page_num * flash_page_size(flash) + offset,
         data, size, read_one_page);
 }
 

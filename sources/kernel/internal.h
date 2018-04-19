@@ -20,6 +20,10 @@
 #ifndef __KERNEL_INTERNAL_H_
 #define	__KERNEL_INTERNAL_H_ 1
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef __AVR__
 #	include <kernel/avr/machdep.h>
 #endif
@@ -145,4 +149,8 @@ inline static task_t *task_policy (void)
 
 #define STACK_GUARD(x)		((x)->stack[0] == STACK_MAGIC)
 
-#endif /* !__KERNEL_INTERNAL_H_ */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __KERNEL_INTERNAL_H_ */

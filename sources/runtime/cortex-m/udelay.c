@@ -51,12 +51,59 @@
 
 volatile uint32_t __timer_ticks_uos;
 
+#ifdef CALIBRATED_DELAY
+
+#if KHZ <= 2100
+#   define  DELAY_QUANT 4
+static inline void calib_delay_quant()
+{
+    asm volatile ("nop; nop; nop; nop;");
+}
+#elif KHZ <= 4200
+#   define  DELAY_QUANT 2
+static inline void calib_delay_quant()
+{
+    asm volatile ("nop; nop;");
+}
+#elif KHZ <= 16000
+#   define  DELAY_QUANT 1
+static inline void calib_delay_quant()
+{
+    asm volatile ("nop; nop; nop; nop; nop;");
+}
+#elif KHZ <= 32000
+#   define  DELAY_QUANT 1
+static inline void calib_delay_quant()
+{
+    asm volatile ("nop; nop; nop; nop; nop;");
+    asm volatile ("nop; nop; nop; nop; nop; nop; nop; nop;");
+}
+#endif
+
+#endif
+
 void udelay (unsigned usec)
 {
+
+#ifdef CALIBRATED_DELAY
+    if (usec <= DELAY_QUANT)
+        return;
+        
+    usec -= DELAY_QUANT - 1;
+    
+    while (usec > DELAY_QUANT) {
+        calib_delay_quant();
+        usec -= DELAY_QUANT;
+    }
+    
+    if (usec)
+        calib_delay_quant();
+#else // CALIBRATED_DELAY
+
+#ifdef ARM_1986BE1
     if (! usec)
         return;
 
-#ifdef ARM_1986BE1
     if (! (ARM_RSTCLK->PER_CLOCK & PER_CLOCK_EN)) {
         ARM_RSTCLK->PER_CLOCK |= PER_CLOCK_EN;
 #if (ARM_SYS_TIMER==4)
@@ -123,6 +170,8 @@ void udelay (unsigned usec)
             break;
     }
 #else
+    if (! usec)
+        return;
 
     uint32_t ctrl;
     uint32_t prev_ticks;
@@ -191,4 +240,6 @@ void udelay (unsigned usec)
             break;
     }
 #endif
+
+#endif // CALIBRATED_DELAY
 }

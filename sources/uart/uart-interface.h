@@ -45,11 +45,13 @@
 #define UART_ERR_BAD_FREQ        -1
 // Возращается в случае невозможности передачи/приёма сообщения из-за его
 // большой длины (недостаточный размер буфера в драйвере).
-#define UART_ERR_SMALL_BUF       -2
+#define UART_ERR_TOO_LONG        -2
 // Возвращается, если указан недопустимый номер порта (контроллера) UART.
 #define UART_ERR_BAD_PORT        -3
 // Возвращается, если запрошен неподдерживаемый режим.
 #define UART_ERR_MODE_NOT_SUPP   -4
+// Возвращается, если передатчик занят при попытке выдачи новой посылки.
+#define UART_ERR_BUSY            -5
 
 //
 // Установки режима драйвера
@@ -77,66 +79,55 @@ struct _uartif_t
     // Мьютекс для синхронизации
     mutex_t     lock;
 
-    // Требование к выравниванию данных (к адресам tx_data и rx_data),
-    // сообщаемое драйвером UART использующему его коду.
-    // Должны соблюдаться равенства:
-    // (unsigned) tx_data & data_align == 0
-    // (unsigned) rx_data & data_align == 0
-    // Иначе не гарантируются правильные приём и передача данных.
-    unsigned data_align;
-
     // В данное поле должен быть записан указатель на аппаратно-зависимую
     // функцию, позволяющую установить параметры драйвера с помощью 
-    // битовых полей UART_*, указанных в параметре params.
-    int (* set_param)(uartif_t *uart, unsigned params);
-
-    // В данное поле должен быть записан указатель на аппаратно-зависимую
-    // функцию, позволяющую установить скорость передачи в байтах/с.
-    int (* set_speed)(uartif_t *uart, unsigned bytes_per_sec);
+    // битовых полей UART_*, указанных в параметре params. В параметре
+    // bytes_per_sec указывается скорость передачи в байтах/с
+    int (* set_param)(uartif_t *uart, unsigned params, unsigned bytes_per_sec);
 
     // В данное поле должен быть записан указатель на аппаратно-зависимую
     // функцию, выполняющую передачу по интерфейсу UART сообщения из буфера
     // data размера size. Функция возвращает реальное количество переданных
     // байт или код ошибки (отрицательное число).
-    int (* tx)(uartif_t *uart, void *data, int size);
+    int (* tx)(uartif_t *uart, const void *data, int size);
 
     // В данное поле должен быть записан указатель на аппаратно-зависимую
     // функцию, выполняющую приём по интерфейсу UART сообщения в буфер
-    // data; size - размер буфера. Если wait_full_msg == 1, то функция
-    // должна принять сообщение размера size и только потом вернуть управление
-    // вызывавшей функции; иначе функция должна сразу же вернуть имеющееся 
-    // (ненулевое) количество байт. timeout - время ожидания в миллисекундах.
+    // data; size - размер буфера; non_block - если ненулевое значение,
+    // то функция не должна блокироваться при отсутствии принятых данных.
     // Функция возвращает реальное количество принятых байт или код ошибки
     // (отрицательное число).
-    int (* rx)(uartif_t *uart, void *data, int size,
-        int wait_full_msg, unsigned timeout_msec);
+    int (* rx)(uartif_t *uart, void *data, int size, int non_block);
+    
+    // В данное поле должен быть записан указатель на аппаратно-зависимую
+    // функцию, выполняющую очистку приёмного буфера
+    int (*flush_rx)(uartif_t *uart);
 };
 
 #define to_uartif(x)   ((uartif_t*)&(x)->uartif)
 
 static inline __attribute__((always_inline)) 
-int uart_set_param(uartif_t *uart, unsigned params)
+int uart_set_param(uartif_t *uart, unsigned params, unsigned bytes_per_sec)
 {
-    return uart->set_param(uart, params);
+    return uart->set_param(uart, params, bytes_per_sec);
 }
 
 static inline __attribute__((always_inline)) 
-int uart_set_speed(uartif_t *uart, unsigned bytes_per_sec)
-{
-    return uart->set_speed(uart, bytes_per_sec);
-}
-
-static inline __attribute__((always_inline)) 
-int uart_tx(uartif_t *uart, void *data, int size)
+int uart_tx(uartif_t *uart, const void *data, int size)
 {
     return uart->tx(uart, data, size);
 }
 
 static inline __attribute__((always_inline)) 
-int uart_rx(uartif_t *uart, void *data, int size, int wait_full_msg, 
-    unsigned timeout_msec)
+int uart_rx(uartif_t *uart, void *data, int size, int non_block)
 {
-    return uart->rx(uart, data, size, wait_full_msg, timeout_msec);
+    return uart->rx(uart, data, size, non_block);
 }
 
-#endif /* __UART_INTERFACE_H__ */
+static inline __attribute__((always_inline)) 
+int uart_flush_rx(uartif_t *uart)
+{
+    return uart->flush_rx(uart);
+}
+
+#endif // __UART_INTERFACE_H__

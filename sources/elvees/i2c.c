@@ -3,115 +3,118 @@
 #include <kernel/internal.h>
 #include <elvees/i2c.h>
 
-#if defined(ELVEES_NVCOM01)
-
 #define I2C_IRQ     23
 
-
-static bool_t i2c_write(uint8_t data, uint8_t flags, mutex_t *m)
+static int elvees_start_trx(elvees_i2c_t *i2c)
 {
-	MC_I2C_TXR = data;
-	MC_I2C_CR = MC_I2C_SND | flags;
-    //while (MC_I2C_SR & MC_I2C_IF)
-        mutex_wait (m);
-    MC_I2C_CR = MC_I2C_IACK;
-	if (MC_I2C_SR & MC_I2C_AL)
-		return 0;
-    //mdelay(1);
-    return 1;
-}
+    while (i2c->cur_trans->size == 0) {
+        i2c->cur_trans = i2c->cur_trans->next;
+        if (! i2c->cur_trans)
+            return I2C_ERR_BAD_PARAM;
+    }
 
-static bool_t i2c_read(uint8_t *data, uint8_t flags, mutex_t *m)
-{
-    MC_I2C_CR = MC_I2C_RCV | flags;
-    //while (MC_I2C_SR & MC_I2C_IF)
-        mutex_wait (m);
-    MC_I2C_CR = MC_I2C_IACK;
-	if (MC_I2C_SR & MC_I2C_AL)
-		return 0;
-    //mdelay(1);
-    *data = MC_I2C_RXR;
-    return 1;
-}
-
-static inline void i2c_reset(elvees_i2c_t *i2c)
-{
-	MC_I2C_CTR = MC_I2C_PRST;
 	MC_I2C_CTR = MC_I2C_EN | MC_I2C_IEN;
-	MC_I2C_PRER = KHZ / (5 * i2c->rate) - 1;
+	MC_I2C_PRER = KHZ / (5 * I2C_MODE_GET_FREQ_KHZ(i2c->cur_mode)) - 1;
+
+    i2c->trx_bytes = i2c->cur_trans->data;
+
+    if (i2c->cur_trans->size > 0) {
+        i2c->trx_size = i2c->cur_trans->size;
+        MC_I2C_TXR = I2C_MODE_GET_SLAVE_ADDR(i2c->cur_mode);
+    } else if (i2c->cur_trans->size < 0) {
+        i2c->trx_size = -i2c->cur_trans->size;
+        MC_I2C_TXR = I2C_MODE_GET_SLAVE_ADDR(i2c->cur_mode) | MC_I2C_READ;
+    }
+    
+    MC_I2C_CR = MC_I2C_SND | MC_I2C_STA;
+    
+    return I2C_ERR_OK;
 }
 
-static bool_t
-trx (miic_t *c, small_uint_t sla, void *tb, small_uint_t ts,
-	void *rb, small_uint_t rs)
+static int wait_byte_transmitted(mutex_t *lock)
 {
-    elvees_i2c_t *i2c = (elvees_i2c_t *)c;
-	uint8_t* ptr;
-	bool_t need_write = tb && ts;
-	bool_t need_read  = rb && rs;
-
-	assert (c && (need_write || need_read));
-
-	sla &= ~1;
-	mutex_lock (&c->lock);	/* only 1 task may use IIC at same time */
-	mutex_lock_irq (&c->irq_lock, I2C_IRQ, 0, 0);
-
-	if (need_write) {
-        /* Start write transaction */
-        if (!i2c_write(sla, MC_I2C_STA, &c->irq_lock))
-            goto not_acked;
+    mutex_wait(lock);
+    MC_I2C_CR = MC_I2C_IACK;
+    
+    if (MC_I2C_SR & MC_I2C_AL)
+        return I2C_ERR_ARBITR_LOST;
         
-		ptr = (uint8_t*) tb;
-		while (ts > 1) {
-			/* debug_printf ("IIC: out data (0x%02x)\n", *ptr); */
-            if (!i2c_write(*ptr++, 0, &c->irq_lock))
-				goto not_acked;
-            ts--;
-		}
+    if (MC_I2C_SR & MC_I2C_RXNACK)
+        return I2C_ERR_NOT_ACKED;
+
+    return I2C_ERR_OK;
+}
+
+static int elvees_i2c_trx(i2cif_t *i2cif, i2c_message_t *msg)
+{
+    elvees_i2c_t *i2c = (elvees_i2c_t *) i2cif;
+    int res = I2C_ERR_OK;
+    
+    if (! msg->first)
+        return I2C_ERR_BAD_PARAM;
+    
+    mutex_lock(&i2cif->lock);
+	
+	i2c->cur_mode = msg->mode;
+	i2c->cur_trans = msg->first;
+
+    while (i2c->cur_trans) {
+        const int is_last_transaction = (i2c->cur_trans->next == 0);
+        const int is_tx_transaction = (i2c->cur_trans->size > 0);
+        const int is_rx_transaction = (i2c->cur_trans->size < 0);
         
-        if (need_read) {
-            if (!i2c_write(*ptr, 0, &c->irq_lock))
-				goto not_acked;
-        } else {
-            if (!i2c_write(*ptr, MC_I2C_NACK | MC_I2C_STO, &c->irq_lock))
-				goto not_acked;
+      	res = elvees_start_trx(i2c);
+	    if (res != I2C_ERR_OK)
+	        goto trx_exit;
+	        
+        res = wait_byte_transmitted(&i2cif->lock);
+        if (res != I2C_ERR_OK)
+            goto trx_exit;
+	        
+        while (i2c->trx_size) {
+            unsigned cr;
+            if (is_tx_transaction) {
+                cr = MC_I2C_SND;
+                MC_I2C_TXR = *i2c->trx_bytes++;
+            } else {
+                cr = MC_I2C_RCV;
+            }
+
+            const int is_last_byte = (--i2c->trx_size == 0);
+            if (is_last_transaction && is_last_byte)
+                cr |= MC_I2C_NACK | MC_I2C_STO;
+            MC_I2C_CR = cr;
+            
+            res = wait_byte_transmitted(&i2cif->lock);
+            if (is_last_byte) {
+	            if ((is_tx_transaction && (res != I2C_ERR_OK)) ||
+	                (is_rx_transaction && (res != I2C_ERR_NOT_ACKED))) {
+	                    res = I2C_ERR_NOT_ACKED;
+    	                goto trx_exit;
+    	            }
+            } else {
+                if (res != I2C_ERR_OK)
+                    goto trx_exit;
+            }
+            
+            if (is_rx_transaction)
+                *i2c->trx_bytes++ = MC_I2C_RXR;
         }
-	}
-
-	if (need_read) {
-		ptr = (uint8_t*) rb;
-		/* out SLA with READ bit set */
-		/* debug_printf ("IIC: out SLA (0x%02x)\n", sla | 1); */
-        if (!i2c_write(sla | 1, MC_I2C_STA, &c->irq_lock))
-            goto not_acked;
-
-		while (rs > 1) {
-            if (!i2c_read(ptr++, 0, &c->irq_lock))
-                goto not_acked;
-		}
         
-        if (!i2c_read(ptr++, MC_I2C_NACK | MC_I2C_STO, &c->irq_lock))
-            goto not_acked;
-	}
+        i2c->cur_trans = i2c->cur_trans->next;
+    }
+    res = I2C_ERR_OK;
 
-	mutex_unlock_irq (&c->irq_lock);
-	mutex_unlock (&c->lock);
-	return 1;
-
-not_acked:
-    i2c_reset(i2c);
-	mutex_unlock_irq (&c->irq_lock);
-	mutex_unlock (&c->lock);
-
-	/* debug_printf ("I2C: not acked\n"); */
-	return 0;
+trx_exit:
+	MC_I2C_CTR = MC_I2C_PRST;
+  	mutex_unlock(&i2cif->lock);
+    return res;
 }
 
-void elvees_i2c_init (elvees_i2c_t *i2c, uint32_t rate)
+void elvees_i2c_init(elvees_i2c_t *i2c)
 {
-    i2c->transaction = trx;
-    i2c->rate = rate;
-    i2c_reset(i2c);
+    MC_I2C_CTR = MC_I2C_PRST;
+    i2c->i2cif.trx = elvees_i2c_trx;
+    mutex_attach_irq(&i2c->i2cif.lock, I2C_IRQ, 0, 0);
 }
 
-#endif

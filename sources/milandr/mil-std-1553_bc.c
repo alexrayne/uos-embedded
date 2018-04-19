@@ -222,6 +222,7 @@ void mil_std_1553_bc_handler(milandr_mil1553_t *mil, const unsigned short status
             } else {
                 if (mil->pool && mil->urgent_desc.transmit_mode == MIL_SLOT_RT_BC) {
                     copy_to_urgent_rxq(mil, mil->urgent_desc);
+                    //copy_to_cyclogram_rxq(mil, mil->urgent_desc);
                 }
                 wc = mil->urgent_desc.words_count;
                 mil->nb_words += (wc>0?wc:32);

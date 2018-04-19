@@ -1531,13 +1531,18 @@
 #define MC_I2C_TIP           (1 << 1)
 #define MC_I2C_AL            (1 << 5)
 #define MC_I2C_BUSY          (1 << 6)
-#define MC_I2C_RXACK         (1 << 7)
+#define MC_I2C_RXNACK        (1 << 7)
 
 /*
  * I2C_SYNC - регистр синхронизации
  */
 #define MC_I2C_WAIT_PER(x)   ((x) & 0xFFFF)
 #define MC_I2C_SYNC_EN       (1 << 16)
+
+/*
+ * I2C_TXR - регистр передаваемых данных
+ */
+#define MC_I2C_READ          (1 << 0)
 
 /*-------------------------------------------
  * Регистры PCI

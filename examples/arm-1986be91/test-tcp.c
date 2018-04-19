@@ -144,15 +144,6 @@ void console_task (void *data)
 				print_socket_data (&debug, user_socket);
 			putchar (&debug, '\n');
 			break;
-		case 't' & 037:
-			task_print (&debug, 0);
-			task_print (&debug, (task_t*) stack_console);
-//			task_print (&debug, (task_t*) stack_poll);
-			task_print (&debug, (task_t*) stack_tcp);
-			task_print (&debug, (task_t*) eth.stack);
-			task_print (&debug, (task_t*) ip.stack);
-			putchar (&debug, '\n');
-			break;
 		}
 	}
 }
@@ -224,8 +215,8 @@ void uos_init (void)
 
 	/* Используем только внутреннюю память.
 	 * Оставляем 256 байтов для задачи "idle". */
-	extern unsigned __bss_end[], _estack[];
-	mem_init (&pool, (unsigned) __bss_end, (unsigned) _estack - 256);
+	extern unsigned long __bss_end, _estack[];
+	mem_init (&pool, (unsigned) &__bss_end, (unsigned) &_estack - 256);
 
 	timer_init (&timer, KHZ, 50);
 	gpanel_init (&display, &font_fixed6x8);
