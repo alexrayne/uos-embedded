@@ -178,14 +178,14 @@ void uos_init(void)
 {	
 #ifdef DATA_HI_POOL
 	// Динамическая память в data_hi
-	extern unsigned __hi_data_end[], _hstack[];
+	extern unsigned long __hi_data_end, _hstack;
 	memset((void *)0x20100000, 0, 16*1024);
-	mem_init(&pool, (unsigned) __hi_data_end, (unsigned) _hstack );
+	mem_init(&pool, (unsigned) &__hi_data_end, (unsigned) &_hstack );
 #else
 	// Динамическая память в SRAM
-	extern unsigned __bss_end[];
-	extern unsigned _estack[];
-	mem_init(&pool, (unsigned) __bss_end, (unsigned) _estack - 256);
+	extern unsigned long __bss_end;
+	extern unsigned long _estack;
+	mem_init(&pool, (unsigned) &__bss_end, (unsigned) &_estack - 256);
 #endif
 
 	// системный таймер

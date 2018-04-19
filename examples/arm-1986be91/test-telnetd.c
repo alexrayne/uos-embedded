@@ -55,8 +55,6 @@ ARRAY (arp_data, sizeof(arp_t) + 10 * sizeof(arp_entry_t));
 static void
 mem_cmd (stream_t *stream)
 {
-	int n;
-
 	putchar (stream, '\n');
 	printf (stream, "Free memory: %u bytes\n", mem_available (&pool));
 

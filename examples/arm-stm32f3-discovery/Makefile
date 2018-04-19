@@ -20,7 +20,6 @@ TESTS		+= test-ds7505.bin
 TESTS		+= test-adt7461.bin
 TESTS		+= test-uart.bin
 TESTS		+= test-ds18s20.bin
-TESTS       += optrans.bin
 OUTS		= $(TESTS:%.bin=%.elf)
 
 all:		$(OUTS) $(TESTS) $(TEST).dis

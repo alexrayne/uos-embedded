@@ -67,9 +67,10 @@ static int stm32f3_uart_set_param(uartif_t *uart, unsigned params, unsigned byte
     return UART_ERR_OK;
 }
 
+/*
 static bool_t clear_tx_dma_intr_flags(void *arg)
 {
-    stm32l1_uart_t* stmu = arg;
+    stm32f3_uart_t* stmu = arg;
     int tx_irq = 0;
     
     switch (stmu->port) {
@@ -96,6 +97,7 @@ static bool_t clear_tx_dma_intr_flags(void *arg)
     arch_intr_allow(tx_irq);
     return 0;
 }
+*/
 
 static int stm32f3_uart_tx(uartif_t *uart, const void *data, int size)
 {

@@ -231,6 +231,7 @@ static int erase_4k(flashif_t *flash, unsigned sector_num)  {
   return FLASH_ERR_OK;
 }
 
+/*
 static int erase_64k(flashif_t *flash, unsigned sector_num)
 {
     int res;
@@ -270,6 +271,7 @@ static int erase_64k(flashif_t *flash, unsigned sector_num)
 
     return FLASH_ERR_OK;
 }
+*/
 
 static int s25fl_k_erase_sectors(flashif_t *flash, unsigned sector_num,
     unsigned nb_sectors)
