@@ -1,5 +1,5 @@
 /*
- * Linker script for Milandr ARM Cortex-M3
+ * Linker script for STM32F2xx ARM Cortex-M3
  */
 /* Default linker script, for normal executables */
 OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm",
@@ -8,12 +8,12 @@ OUTPUT_ARCH(arm)
 ENTRY(_start_)
 MEMORY
 {
-  text   (rx)   : ORIGIN = 0x08000000,	LENGTH = 2M
-  data   (rw!x) : ORIGIN = 0x20000000,	LENGTH = 256k
+  text   (rx)   : ORIGIN = 0x08000000,	LENGTH = 1M
+  data   (rw!x) : ORIGIN = 0x20000000,	LENGTH = 128k
 }
 
 /* higher address of the user mode stack */
-_estack = 0x20008000;
+_estack = ORIGIN(data) + LENGTH(data);
 
 _btext = ORIGIN(text);
 
