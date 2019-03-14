@@ -94,7 +94,6 @@ mutex_lock (mutex_t *m)
 #if RECURSIVE_LOCKS
 	++m->deep;
 #endif
-	m->active = 0;
 	arch_intr_restore (x);
 }
 

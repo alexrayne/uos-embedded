@@ -101,10 +101,6 @@ struct _mutex_t {
 	list_t		groups;		/* group slots, waiting for signal */
 	mutex_irq_t *	irq;		/* irq, associated with the lock */
 	int		prio;		/* current lock priority */
-	int		active;		/* flag that mutex activated in locked state
-					but not yet waited */
-	void *		saved_msg;	/* saved message in case of mutex activated 
-					in locked state but not yet waited */
 #if RECURSIVE_LOCKS
 	small_int_t	deep;		/* recursive locking deep */
 #endif

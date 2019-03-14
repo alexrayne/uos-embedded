@@ -29,7 +29,8 @@ mutex_irq_t mutex_irq [ARCH_INTERRUPTS]; /* interrupt handlers */
 
 #define ALIGNED_IDLE_TASK_STACKSZ ((IDLE_TASK_STACKSZ + sizeof(void *) - 1) & ~(sizeof(void *) - 1))
 
-static ARRAY (task_idle_data, sizeof(task_t) + ALIGNED_IDLE_TASK_STACKSZ - sizeof(void *));
+static ARRAY (task_idle_data, sizeof(task_t) + ALIGNED_IDLE_TASK_STACKSZ);
+
 bool_t task_need_schedule;
 
 /*
@@ -38,7 +39,6 @@ bool_t task_need_schedule;
 void task_schedule ()
 {
 	task_t *new;
-
 	task_need_schedule = 0;
 	new = task_policy ();
 	if (new != task_current) {
@@ -56,22 +56,17 @@ mutex_activate (mutex_t *m, void *message)
 	task_t *t;
 	mutex_slot_t *s;
 
+
 	assert (m != 0);
 	if (! m->item.next)
 		mutex_init (m);
 
-    if (list_is_empty (&m->waiters)) {
-        m->active = 1;
-        m->saved_msg = message;
-        return;
-    } else {
-	    while (! list_is_empty (&m->waiters)) {
-		    t = (task_t*) list_first (&m->waiters);
-		    assert (t->wait == m);
-		    t->wait = 0;
-		    t->message = message;
-		    task_activate (t);
-	    }
+	while (! list_is_empty (&m->waiters)) {
+		t = (task_t*) list_first (&m->waiters);
+		assert (t->wait == m);
+		t->wait = 0;
+		t->message = message;
+		task_activate (t);
 	}
 
 	/* Activate groups. */
@@ -117,7 +112,7 @@ main (void)
 	set_stack_pointer (&task_idle->stack[ALIGNED_IDLE_TASK_STACKSZ-1]);
 #elif defined(MIPS32)
     /* MIPS32 stack pointer must be 8-byte aligned */
-    unsigned long last_aligned_addr = (unsigned long) &task_idle->stack[ALIGNED_IDLE_TASK_STACKSZ-4];
+    unsigned long last_aligned_addr = (unsigned long) &task_idle->stack[ALIGNED_IDLE_TASK_STACKSZ];
     last_aligned_addr &= ~0x7;
     set_stack_pointer ((void *) last_aligned_addr);
 #else
