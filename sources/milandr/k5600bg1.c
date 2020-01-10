@@ -594,7 +594,7 @@ handle_interrupt (k5600bg1_t *u)
 		if (p) {
 			/* Передаём следующий пакет. */
 			transmit_packet (u, p);
-			buf_free (p);
+			netif_free_buf (&u->netif, p);
 		}
 	}
 	ARM_NVIC_ICPR(0) = 1 << K5600BG1_IRQ;

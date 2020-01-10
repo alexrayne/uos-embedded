@@ -1054,11 +1054,35 @@ bool_t eth_output(eth_t *u, buf_t *p, small_uint_t prio)
     if((p->tot_len < /*4*/18) || (p->tot_len > ETH_MTU) || (ARM_ETH->PHY_STAT & ARM_ETH_PHY_LED_LINK)) {
         u->netif.out_errors++;       
 //debug_printf ("eth_output: transmit %d bytes, link failed\n", p->tot_len);
-        buf_free (p);
+        netif_free_buf (&u->netif, p);
         mutex_unlock (&u->tx_lock);
         return 0;
     }
 //debug_printf ("eth_output: transmit %d bytes\n", p->tot_len);
+
+    netif_io_overlap* over = netif_is_overlaped(p);
+    if (over != 0){
+        over->asynco = nios_inprocess;
+        unsigned ops = over->options;
+        if ( (ops & nioo_ActionTerminate) == 0)
+        {
+            unsigned qlimit = ops & nioo_FreeLevel;
+            if (qlimit == 0)
+                qlimit = ETH_OUTQ_SIZE - ETH_OUTQ_PRESERVE;
+            else
+                qlimit = ETH_OUTQ_SIZE - qlimit;
+            is_full = qlimit <= u->outq.count;
+        }
+        else
+            is_full = 1;
+        //пакет с оверлеем не ожидает очереди, потому что он умеет самообслуживаться
+        //  потому сразу отказываем ему если он не помещается в очередь
+        if (is_full) {
+            mutex_unlock (&u->tx_lock);
+            netif_free_buf (&u->netif, p);
+            return 0;
+        }
+    }
 
 	uint16_t data_space[2], words[2];		
 	uint16_t data_start = ARM_ETH->X_HEAD;
@@ -1078,7 +1102,7 @@ bool_t eth_output(eth_t *u, buf_t *p, small_uint_t prio)
 	if(buf_queue_is_empty(&u->outq) && (words[0] >= words[1])) {
         // Отправка кадра.
         eth_chip_transmit_packet(u, p); 
-        buf_free(p);
+        netif_free_buf (&u->netif, p);
         mutex_unlock(&u->tx_lock); 
         return 1;
     }
@@ -1095,7 +1119,7 @@ bool_t eth_output(eth_t *u, buf_t *p, small_uint_t prio)
 		// Нет места в очереди: теряем пакет. 
 		u->netif.out_discards++;		
 		debug_printf("eth_output: overflow\n"); 
-		buf_free(p);
+		netif_free_buf (&u->netif, p);
 		mutex_unlock(&u->tx_lock);
 		return 0;
 	}
@@ -1271,7 +1295,7 @@ void eth_handle_transmit_interrupt(eth_t *u)
 		return;
 	}
 	eth_chip_transmit_packet(u, p);
-	buf_free (p);
+	netif_free_buf (&u->netif, p);
     // Передаётся следующий пакет.
 //debug_printf ("eth tx irq: send next packet, STATUS_PHY = %08x\n", status_phy);
 }

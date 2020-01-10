@@ -459,7 +459,7 @@ static bool_t eth_output(eth_t *u, buf_t *p, small_uint_t prio) {
 	 ++u->netif.out_discards;
 	 ++u->out_full_buf;
 	 mutex_unlock(&u->netif.lock);
-	 buf_free(p);
+	 netif_free_buf (&u->netif, p);
 	 return 0;
 	 }
 	//while (buf_queue_is_full(&u->outq)) // можем навечно тут зависнуть Pavel
