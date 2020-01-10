@@ -135,7 +135,7 @@
  */
 #ifndef MIPS_FSPACE
 #ifdef ELVEES_MC24R2
-#   define MIPS_FSPACE		24	/* for Elvees MC24R2 */
+#   define MIPS_FSPACE		80	/* for Elvees MC24R2 */
 #endif
 #ifdef ELVEES_NVCOM01
 //  !!!без оптимизации -O0 - фрейм _arch_interrupt_ =88
@@ -143,22 +143,22 @@
 #   define MIPS_FSPACE		88	/* for Elvees NVCom-01 */
 #endif
 #ifdef ELVEES_NVCOM02
-#   define MIPS_FSPACE		24	/* TODO: for Elvees NVCom-02 */
+#   define MIPS_FSPACE		80	/* TODO: for Elvees NVCom-02 */
 #endif
 #ifdef ELVEES_MCT02
-#   define MIPS_FSPACE		24	/* for Elvees MCT02-01 */
+#   define MIPS_FSPACE		80	/* for Elvees MCT02-01 */
 #endif
 #ifdef ELVEES_MCT03P
-#   define MIPS_FSPACE		24	/* for Elvees MCT-03P */
+#   define MIPS_FSPACE		80	/* for Elvees MCT-03P */
 #endif
 #ifdef ELVEES_MC0226
-#   define MIPS_FSPACE		24	/* for Elvees MC0226 */
+#   define MIPS_FSPACE		80	/* for Elvees MC0226 */
 #endif
 #ifdef ELVEES_MC0428
-#   define MIPS_FSPACE		24	/* for Elvees MC-0428 */
+#   define MIPS_FSPACE		80	/* for Elvees MC-0428 */
 #endif
 #ifdef ELVEES_MC30SF6
-#   define MIPS_FSPACE		24	/* for Elvees MC-30SF6 */
+#   define MIPS_FSPACE		80	/* for Elvees MC-30SF6 */
 #endif
 #endif //MIPS_FSPACE
 

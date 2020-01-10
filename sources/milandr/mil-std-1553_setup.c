@@ -18,6 +18,10 @@ uint32_t nb_missing;
 static bool_t timer_handler(void *arg)
 {
     milandr_mil1553_t *mil = arg;
+    
+#ifdef MIL_RX_PACKETS_WITH_TIMESTAMPS
+    mil->operation_time += mil->period_ms;
+#endif
 
     if (mil->urgent_desc.raw != 0) {
         //debug_printf("urgent_desc ");
@@ -111,8 +115,8 @@ static int mil_start(mil1553if_t *_mil)
             } else {
                 mil->tim_reg->TIM_ARR = mil->period_ms * KHZ-1;
             }
-            mil->tim_reg->TIM_IE = ARM_TIM_CNT_ARR_EVENT_IE;
             mil->tim_reg->TIM_CNTRL = ARM_TIM_CNT_EN;
+            mil->tim_reg->TIM_IE = ARM_TIM_CNT_ARR_EVENT_IE;
         }
         mil->reg->INTEN = MIL_STD_INTEN_VALMESSIE | MIL_STD_INTEN_ERRIE;
         mil->reg->CONTROL = control;
@@ -139,6 +143,9 @@ static int mil_start(mil1553if_t *_mil)
         return MIL_ERR_NOT_SUPP;
     }
 
+#ifdef MIL_RX_PACKETS_WITH_TIMESTAMPS
+    mil->operation_time = 0;
+#endif
     mil->is_running = 1;
     return MIL_ERR_OK;
 }

@@ -28,7 +28,7 @@ mutex_irq_t mutex_irq [ARCH_INTERRUPTS]; /* interrupt handlers */
 #if ARCH_ISR_FSPACE > 0
 #define IDLE_TASK_STACKSZ   (256+ARCH_ISR_FSPACE)
 #else
-#define IDLE_TASK_STACKSZ   256
+#define IDLE_TASK_STACKSZ   512
 #endif
 #endif
 
