@@ -135,15 +135,16 @@ for (i = 0; i < m->msg.word_count; ++i)
 debug_printf("\n\n");    
 */
     for (i = 7; i < m->msg.word_count; ++i) {
-		if (m->databuf[i] != 0xFF) {
-			*r1 = &m->databuf[i];
-			break;
-		}
+        if (m->databuf[i] != 0xFF) {
+            *r1 = &m->databuf[i];
+            break;
+        }
     }
-    if (i == m->msg.word_count) {
+
+    if (i == m->msg.word_count)
         return FLASH_ERR_BAD_ANSWER;
-    }
-	return FLASH_ERR_OK;
+
+    return FLASH_ERR_OK;
 }
 
 //
@@ -171,6 +172,8 @@ static int sd_connect(flashif_t *flash)
     mutex_lock(&flash->lock);
     
     memset(m->databuf, 0xFF, sizeof(m->databuf));
+    
+    m->state = 0;
 
     // Initial clock to activate SD controller
     m->msg.freq = 400000;
@@ -187,6 +190,10 @@ static int sd_connect(flashif_t *flash)
     int nb_try = 100;
 	do {
 		nb_try--;
+		if (nb_try <= 0) {
+            mutex_unlock(&flash->lock);
+			return FLASH_ERR_NOT_CONN;
+        }
 
 		m->databuf[0] = CMD_GO_IDLE_STATE;
 		m->databuf[1] = 0x00;
@@ -204,10 +211,6 @@ static int sd_connect(flashif_t *flash)
 			mutex_unlock(&flash->lock);
 			return res;
 		}
-		
-		if (nb_try <= 0)
-			return FLASH_ERR_NOT_CONN;
-			
     } while (*r1 != IN_IDLE_STATE);
     
     // Checking SD version
@@ -315,7 +318,10 @@ static int sd_connect(flashif_t *flash)
     
     ++r1;
     res = wait_data_token(m, &r1);
-    if (res != FLASH_ERR_OK) return res;
+    if (res != FLASH_ERR_OK) {
+        mutex_unlock(&flash->lock);
+        return res;
+    }
     ++r1;
     
     csd_v2_t csd_v2;
@@ -342,7 +348,10 @@ static int sd_connect(flashif_t *flash)
     
     ++r1;
     res = wait_data_token(m, &r1);
-    if (res != FLASH_ERR_OK) return res;
+    if (res != FLASH_ERR_OK) {
+        mutex_unlock(&flash->lock);
+        return res;
+    }
     
     int offset = 0;
     if (r1) offset = r1 - m->databuf + m->msg.word_count;
@@ -672,7 +681,8 @@ sd_erase_sectors(flashif_t *flash, unsigned sector_num,
 // учитывать.
 //
 static int 
-sd_read(flashif_t *flash, unsigned page_num, void *data, unsigned size)
+sd_read(flashif_t *flash, unsigned page_num, unsigned offset, 
+        void *data, unsigned size)
 {
     int res = FLASH_ERR_OK;
     sdhc_spi_t *m = (sdhc_spi_t *) flash;
@@ -682,7 +692,6 @@ sd_read(flashif_t *flash, unsigned page_num, void *data, unsigned size)
     unsigned cur_size;
     
     mutex_lock(&flash->lock);
-    
     do {
         switch (m->state) {
         case SDHC_STATE_MULTIWRITE:
@@ -757,7 +766,7 @@ sd_read(flashif_t *flash, unsigned page_num, void *data, unsigned size)
 // учитывать.
 //
 static int 
-sd_write(flashif_t *flash, unsigned page_num, 
+sd_write(flashif_t *flash, unsigned page_num, unsigned offset,
     void *data, unsigned size)
 {
     int res = FLASH_ERR_OK;
@@ -864,6 +873,11 @@ sd_flush(flashif_t *flash)
     return res;
 }
 
+int sd_no_exp_erase(flashif_t *flash)
+{
+    return 0;
+}
+
 void sd_spi_init(sdhc_spi_t *m, spimif_t *s, unsigned mode)
 {
     m->spi = s;
@@ -875,6 +889,7 @@ void sd_spi_init(sdhc_spi_t *m, spimif_t *s, unsigned mode)
     f->write = sd_write;
     f->read = sd_read;
     f->flush = sd_flush;
+    f->needs_explicit_erase = sd_no_exp_erase;
 
     m->msg.mode = (mode & 0xFF07) | SPI_MODE_NB_BITS(8);
 }

@@ -256,10 +256,6 @@ try_again:		printf (&debug, "Enter packet size (1-1518): ");
 			/* Список задач uOS. */
 			printf (&debug, "\nFree memory: %u bytes\n\n",
 				mem_available (&pool));
-			task_print (&debug, 0);
-			task_print (&debug, (task_t*) stack_console);
-			task_print (&debug, (task_t*) stack_test);
-			task_print (&debug, (task_t*) eth.stack);
 			putchar (&debug, '\n');
 			continue;
 		}
@@ -287,8 +283,8 @@ void uos_init (void)
 {
 	/* Используем только внутреннюю память.
 	 * Оставляем 256 байтов для задачи "idle". */
-	extern unsigned __bss_end[], _estack[];
-	mem_init (&pool, (unsigned) __bss_end, (unsigned) _estack - 256);
+	extern unsigned long __bss_end, _estack;
+	mem_init (&pool, (unsigned) &__bss_end, (unsigned) &_estack - 256);
 
 	timer_init (&timer, KHZ, 50);
 

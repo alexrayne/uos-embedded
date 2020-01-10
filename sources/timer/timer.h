@@ -23,6 +23,7 @@ extern "C" {
  */
 #define TIMER_MSEC_PER_DAY  (24UL*60*60*1000)
 #define TIMER_USEC_PER_MSEC (1000UL)
+#define TIMER_NSEC_PER_MSEC (1000000UL)
 
 /**\~russian
  * макро SW_TIMER отключает инициализацию обработчика прерывания системного таймера. в этом случае настраивает и запускает таймер
@@ -59,7 +60,7 @@ extern "C" {
 
 /**\~russian
  * макро TIMER_NO_DECISEC опускает реализацию _timer_t.decisec - экономит время обработчика прерывания
- *  , это поле требуется для протокола TCP!!! 
+ *  , это поле требуется для протокола TCP!!!
  * */
 //#define TIMER_NO_DECISEC 1 
 
@@ -89,10 +90,19 @@ struct _timer_t {
     volatile clock_time_t tick;      //this is timer stamp increments on every tick
     unsigned long khz;      /* reference clock */
 
-#ifdef USEC_TIMER
+#if defined(NSEC_TIMER)
+    unsigned long nsec_per_tick;
+    unsigned long nsec_per_tick_new;
+    volatile unsigned long nsec_in_msec;
+    unsigned long nsec_per_tick_msprec;
+#elif defined(USEC_TIMER)
     unsigned long usec_per_tick;
+    unsigned long usec_per_tick_new;
     volatile unsigned long usec_in_msec;
     small_uint_t usec_per_tick_msprec;
+#else
+    small_uint_t msec_per_tick;
+    small_uint_t msec_per_tick_new;
 #endif
     small_uint_t msec_per_tick;
     volatile unsigned long milliseconds; /* real time counter */
@@ -123,7 +133,14 @@ struct _timer_t {
 typedef struct _timer_t timer_t;
 
 
-#ifdef USEC_TIMER
+#if defined(NSEC_TIMER)
+// Наносекундный таймер
+void timer_init_ns (timer_t *t, unsigned long khz, unsigned long nsec_per_tick);
+INLINE 
+void timer_init (timer_t *t, unsigned long khz, small_uint_t msec_per_tick){
+    timer_init_ns (t, khz, msec_per_tick*TIMER_NSEC_PER_MSEC);
+};
+#elif defined(USEC_TIMER)
 // Микросекудный таймер. Поддерживается пока только для контроллеров
 //  миландровских, MIPS32
 void timer_init_us (timer_t *t, unsigned long khz, unsigned long usec_per_tick);
@@ -185,6 +202,9 @@ unsigned int timer_days (timer_t *t, unsigned long *milliseconds);
  */
 bool_t interval_greater_or_equal (long interval, long msec);
 
+void timer_set_period(timer_t *t, small_uint_t msec_per_tick);
+void timer_set_period_us(timer_t *t, unsigned long usec_per_tick);
+void timer_set_period_ns(timer_t *t, unsigned long nsec_per_tick);
 
 
 void timer_delay_ticks (timer_t *t, clock_time_t ticks);

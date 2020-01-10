@@ -158,7 +158,7 @@ void fat_fs_init(fat_fs_t *fat, mem_pool_t *pool,
     fat->pool = pool;
     fat->flashif = flash;
     fat->first_sec = first_sector;
-    if (flash_read(flash, first_sector, fat->fat_cache, 512) != FLASH_ERR_OK) {
+    if (flash_read(flash, first_sector, 0, fat->fat_cache, 512) != FLASH_ERR_OK) {
         fat->fsif.last_error = FS_ERR_IO;
         return;
     }

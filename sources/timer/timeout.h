@@ -393,6 +393,33 @@ bool_t timeout_rearm_nomt (timeout_t *to, unsigned long interval_msec){
     return timeout_rearm_us_nomt(to, interval_msec*TIMEOUT_TIMER_MS);
 }
 
+#elif defined(NSEC_TIMER)
+#define TIMEOUT_TIMER_MS   (1000000UL)
+
+// TODO
+//
+// Установка периода таймаута в наносекундах.
+//
+// to               - объект таймаута;
+// interval_nsec    - период в нс.
+//
+INLINE
+void timeout_set_value_ns (timeout_t *to, unsigned long long interval_nsec){
+    to->interval = interval_usec;
+}
+
+
+//
+// Установка периода таймаута в миллисекундах.
+//
+// to               - объект таймаута;
+// interval_msec    - период в мс.
+//
+INLINE
+void timeout_set_value (timeout_t *to, unsigned long interval_msec){
+    timeout_set_value_ns(to, interval_msec*TIMEOUT_TIMER_MS);
+}
+
 #else //USEC_TIMER
 #define TIMEOUT_TIMER_MS   (1UL)
 

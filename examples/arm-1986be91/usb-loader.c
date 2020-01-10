@@ -187,7 +187,7 @@ static void run_handler (usbdev_t *u, unsigned ep, int dir, void *tag)
 {
 }
 
-static void loader_specific (usbdev_t *u, void *tag, usb_setup_pkt_t *setup, uint8_t **data, int *size)
+static int loader_specific (usbdev_t *u, void *tag, usb_setup_pkt_t *setup, uint8_t **data, int *size)
 {
     mem_cmd_t *pcmd = (mem_cmd_t *) *data;
     
@@ -269,6 +269,12 @@ debug_printf ("REQUEST RUN\n");
             *size = -1;
         }
     }
+    
+
+    if (*size == -1)
+        return USBDEV_STALL;
+    else
+        return USBDEV_ACK;
 }
 
 static void task (void *arg)
@@ -289,11 +295,11 @@ static void task (void *arg)
 
 void uos_init (void)
 {
-    extern unsigned __bss_end[], _estack[];
+    extern unsigned long __bss_end, _estack;
 
     debug_printf ("=============== USB LOADER ================\n");	
 	
-    mem_init (&pool, (unsigned) __bss_end, (unsigned) _estack - 256);
+    mem_init (&pool, (unsigned) &__bss_end, (unsigned) &_estack - 256);
 	
     //timer_init (&timer, KHZ, 100);
 

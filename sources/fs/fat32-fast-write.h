@@ -1,6 +1,11 @@
 #ifndef __FAT32_FAST_WRITE_H__
 #define __FAT32_FAST_WRITE_H__
 
+// !!!
+// В настройках компилятора должны быть заданы две константы:
+//      FLASH_PAGE_SIZE - размер страницы (единицы записи)
+//      FLASH_ERASE_SEC_SIZE - размер сектора (единицы стирания)
+
 #include <fs/fs-interface.h>
 #include <flash/flash-interface.h>
 #include <mem/mem.h>
@@ -17,7 +22,6 @@
 
 #define FAT_SECTOR_SIZE         (1 << FAT_SECTOR_SIZE_POW)
 #define FAT_SEC_PER_CLUSTER     (1 << FAT_SEC_PER_CLUSTER_POW)
-
 
 #define O_READ      0x1
 #define O_WRITE     0x2
@@ -49,7 +53,9 @@ typedef struct _fat32_fw_t
     char                name_buf[16];
     uint32_t            cached_sector;
     uint32_t            cached_sector_size;
+    uint32_t            nb_flash_sec_per_fat_sec;
     uint32_t            sector[FAT_SECTOR_SIZE / 4] __attribute__((aligned(8)));
+    uint8_t             erase_sector[FLASH_ERASE_SEC_SIZE] __attribute__((aligned(8)));
 } fat32_fw_t;
 
 

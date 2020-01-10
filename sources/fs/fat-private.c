@@ -83,7 +83,7 @@ static inline void move_to_next_cluster(fat_fs_t *fat, fat_fs_entry_t *f)
     if (fat->fsif.fs_type == FS_TYPE_FAT16) {
         req_sec = fat->first_fat_sec + f->cur_clus * 2 / fat->bytes_per_sec;
         if (req_sec != fat->cached_sector) {
-            if (flash_read(fat->flashif, req_sec,
+            if (flash_read(fat->flashif, req_sec, 0,
                 &fat->fat_cache, fat->bytes_per_sec) != FLASH_ERR_OK) {
                     fat->fsif.last_error = FS_ERR_IO;
                     return;
@@ -94,7 +94,7 @@ static inline void move_to_next_cluster(fat_fs_t *fat, fat_fs_entry_t *f)
     } else {
         req_sec = fat->first_fat_sec + f->cur_clus * 4 / fat->bytes_per_sec;
         if (req_sec != fat->cached_sector) {
-            if (flash_read(fat->flashif, req_sec,
+            if (flash_read(fat->flashif, req_sec, 0,
                 &fat->fat_cache, fat->bytes_per_sec) != FLASH_ERR_OK) {
                     fat->fsif.last_error = FS_ERR_IO;
                     return;
@@ -122,7 +122,7 @@ void do_fat_update_cache(fs_entry_t *entry)
     if (!entry->cache_valid) {
         if (flash_read(fat->flashif, 
                 fat->first_data_sec + ((e->cur_clus & 0x0FFFFFFF) - 2) * fat->sec_per_clus + e->cur_sec,
-                entry->cache_data, entry->cache_size) != FLASH_ERR_OK)
+                0, entry->cache_data, entry->cache_size) != FLASH_ERR_OK)
         {
             entry->fs->last_error = FS_ERR_IO;
             return;

@@ -14,20 +14,17 @@
 
 #include <runtime/lib.h>
 #include <kernel/uos.h>
-#include <elvees/spi.h>
 #include <mem/mem.h>
 #include <usb/usbdev.h>
 #include <usb/usb_struct.h>
 #include <usb/usb_const.h>
-#include <stm32l/usbdevhal.h>
+#include <stm32l1/usbdevhal.h>
 #include <timer/timer.h>
 
 ARRAY (task, 1000);
-elvees_spim_t spi;
-spi_message_t msg;
 usbdev_t usb;
 mem_pool_t pool;
-stm32l_usbdev_t usbhal;
+stm32l1_usbdev_t usbhal;
 timer_t timer;
 
 uint8_t buf[8192] __attribute__((aligned(8)));
@@ -315,8 +312,8 @@ void uos_init (void)
 	debug_printf("\n\nTesting USB device\n");
     
 	/* Выделяем место для динамической памяти */
-	extern unsigned __bss_end[], _estack[];
-    mem_init (&pool, (unsigned) __bss_end, (unsigned) _estack - 256);
+	extern unsigned long __bss_end, _estack;
+    mem_init (&pool, (unsigned) &__bss_end, (unsigned) &_estack - 256);
     
     timer_init(&timer, KHZ, 1);
     
@@ -337,6 +334,6 @@ void uos_init (void)
     usbdev_set_ep_specific_handler (&usb, config_descriptor.ep_iso_in.bEndpointAddress & 0xF, 
         USBDEV_DIR_IN, iso_in_handler, 0);
 
-    stm32l_usbdev_init (&usbhal, &usb, 10, &pool);    
+    stm32l1_usbdev_init (&usbhal, &usb, 10, &pool);    
     task_create (hello, 0, "hello", 1, task, sizeof (task));
 }

@@ -39,6 +39,96 @@ debug_redirect (void (*func) (void*, short), void *arg)
 }
 
 #if defined (ARM_1986BE1) || defined (ARM_1986BE9)
+
+#   ifdef ARM_UART1_DEBUG
+#      define DBG_UART  ARM_UART1
+#   else
+#      define DBG_UART  ARM_UART2
+#   endif
+
+static inline int arch_transmitter_busy()
+{
+    return DBG_UART->FR & ARM_UART_FR_TXFF;
+}
+
+static inline void arch_putchar(short c)
+{
+    DBG_UART->DR = c;
+}
+
+static inline int arch_receiver_empty()
+{
+    return DBG_UART->FR & ARM_UART_FR_RXFE;
+}
+
+static inline short arch_getchar()
+{
+    return DBG_UART->DR & ARM_UART_DR_DATA;
+}
+
+#endif // defined (ARM_1986BE1) || defined (ARM_1986BE9)
+
+
+#if defined(ARM_STM32F2) || defined(ARM_STM32F4) || defined(ARM_STM32L1)
+
+#if defined(USE_USART1)
+#	define DBG_USART	USART1
+#elif defined(USE_USART6)
+#	define DBG_USART	USART6
+#else
+#	define DBG_USART	USART3
+#endif
+
+static inline int arch_transmitter_busy()
+{
+    return ! (DBG_USART->SR & USART_TC);
+}
+
+static inline void arch_putchar(short c)
+{
+    DBG_USART->DR = c;
+}
+
+static inline int arch_receiver_empty()
+{
+    return ! (DBG_USART->SR & USART_RXNE);
+}
+
+static inline short arch_getchar()
+{
+    return DBG_USART->DR;
+}
+
+#endif // defined(ARM_STM32F4) || defined(ARM_STM32L1)
+
+
+#if defined(ARM_STM32F3)
+
+#	define DBG_USART	USART1
+
+static inline int arch_transmitter_busy()
+{
+    return ! (DBG_USART->ISR & USART_TC);
+}
+
+static inline void arch_putchar(short c)
+{
+    DBG_USART->TDR = c;
+}
+
+static inline int arch_receiver_empty()
+{
+    return ! (DBG_USART->ISR & USART_RXNE);
+}
+
+static inline short arch_getchar()
+{
+    return DBG_USART->RDR;
+}
+
+#endif // defined(ARM_STM32F3)
+
+
 /*
  * Send a byte to the UART transmitter, with interrupts disabled.
  */
@@ -54,31 +144,18 @@ debug_putchar (void *arg, short c)
 		arm_intr_restore (x);
 		return;
 	}
-#ifdef ARM_UART1_DEBUG
 	/* Wait for transmitter holding register empty. */
-	while (ARM_UART1->FR & ARM_UART_FR_TXFF)
+	while (arch_transmitter_busy())
 		continue;
-#else
-	/* Wait for transmitter holding register empty. */
-	while (ARM_UART2->FR & ARM_UART_FR_TXFF)
-		continue;
-#endif
+		
 again:
 	/* Send byte. */
 	/* TODO: unicode to utf8 conversion. */
-#ifdef ARM_UART1_DEBUG
-	ARM_UART1->DR = c;
+	arch_putchar(c);
 
-/* Wait for transmitter holding register empty. */
-	while (ARM_UART1->FR & ARM_UART_FR_TXFF)
+    /* Wait for transmitter holding register empty. */
+	while (arch_transmitter_busy())
 		continue;
-#else
-	ARM_UART2->DR = c;
-
-/* Wait for transmitter holding register empty. */
-	while (ARM_UART2->FR & ARM_UART_FR_TXFF)
-		continue;
-#endif
 
 	watchdog_alive ();
 	if (debug_onlcr && c == '\n') {
@@ -105,32 +182,14 @@ debug_getchar (void)
 	}
 	arm_intr_disable (&x);
 
-	/* Enable receiver. */
-#ifdef ARM_UART1_DEBUG
-	ARM_UART1->CTL |= ARM_UART_CTL_RXE;
-
 	/* Wait until receive data available. */
-	while (ARM_UART1->FR & ARM_UART_FR_RXFE) {
+	while (arch_receiver_empty()) {
 		watchdog_alive ();
 		arm_intr_restore (x);
 		arm_intr_disable (&x);
 	}
-#else
-	ARM_UART2->CTL |= ARM_UART_CTL_RXE;
-
-		/* Wait until receive data available. */
-	while (ARM_UART2->FR & ARM_UART_FR_RXFE) {
-		watchdog_alive ();
-		arm_intr_restore (x);
-		arm_intr_disable (&x);
-	}
-#endif
 	/* TODO: utf8 to unicode conversion. */
-#ifdef ARM_UART1_DEBUG
-	c = ARM_UART1->DR & ARM_UART_DR_DATA;
-#else
-	c = ARM_UART2->DR & ARM_UART_DR_DATA;
-#endif
+	c = arch_getchar();
 
 	arm_intr_restore (x);
 	return c;
@@ -156,121 +215,17 @@ debug_peekchar (void)
 		return 0;
 	}
 
-#ifdef ARM_UART1_DEBUG
-	/* Enable receiver. */
-	ARM_UART1->CTL |= ARM_UART_CTL_RXE;
-
 	/* Check if receive data available. */
-	if (ARM_UART1->FR & ARM_UART_FR_RXFE) {
+	if (arch_receiver_empty()) {
 		arm_intr_restore (x);
 		return -1;
 	}
 	/* TODO: utf8 to unicode conversion. */
-	c = ARM_UART1->DR & ARM_UART_DR_DATA;
-#else
-	/* Enable receiver. */
-	ARM_UART2->CTL |= ARM_UART_CTL_RXE;
-
-	/* Wait until receive data available. */
-	if (ARM_UART2->FR & ARM_UART_FR_RXFE) {
-		arm_intr_restore (x);
-		return -1;
-	}
-	/* TODO: utf8 to unicode conversion. */
-	c = ARM_UART2->DR & ARM_UART_DR_DATA;
-#endif
+	c = arch_getchar();
 	arm_intr_restore (x);
 	debug_char = c;
 	return c;
 }
-#endif /* ARM_1986BE1 || ARM_1986BE9 */
-
-
-#if defined(ARM_STM32F4) || defined(ARM_STM32L151RC) || defined(ARM_STM32L152RC)
-
-#if defined(USE_USART1)
-#	define DBG_USART	USART1
-#else
-#	define DBG_USART	USART3
-#endif
-
-void
-debug_putchar (void *arg, short c)
-{
-    arch_state_t x;
-
-	arm_intr_disable (&x);
-
-    /* Wait for transmitter holding register empty. */ 
-    while (! (DBG_USART->SR & USART_TC));
-
-again:
-	/* Send byte. */
-	DBG_USART->DR = c;
-    /* Wait for transmitter holding register empty. */
-	while (! (DBG_USART->SR & USART_TC));
-
-	watchdog_alive ();
-	if (debug_onlcr && c == '\n') {
-		c = '\r';
-		goto again;
-	}
-	arm_intr_restore (x);
-}
-
-unsigned short
-debug_getchar (void)
-{
-	unsigned c;
-	arch_state_t x;
-
-	if (debug_char >= 0) {
-		c = debug_char;
-		debug_char = -1;
-		return c;
-	}
-    
-	arm_intr_disable (&x);
-
-	/* Wait until receive data available. */
-	while (! (DBG_USART->SR & USART_RXNE)) {
-		watchdog_alive ();
-		arm_intr_restore (x);
-		arm_intr_disable (&x);
-	}
-
-	c = DBG_USART->DR;
-
-	arm_intr_restore (x);
-	return c;
-
-}
-
-int
-debug_peekchar (void)
-{
-	unsigned char c;
-	arch_state_t x;
-
-	if (debug_char >= 0)
-		return debug_char;
-
-	arm_intr_disable (&x);
-
-	/* Check if receive data available. */
-	if (! (DBG_USART->SR & USART_RXNE)) {
-		arm_intr_restore (x);
-		return -1;
-	}
-
-	c = DBG_USART->DR;
-
-	arm_intr_restore (x);
-	debug_char = c;
-	return c;
-}
-#endif /* ARM_STM32F4 || ARM_STM32L151RC || ARM_STM32L152RC */
-
 
 void
 debug_puts (const char *p)

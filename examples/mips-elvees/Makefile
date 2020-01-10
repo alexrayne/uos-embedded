@@ -57,7 +57,7 @@ endif
 
 include ${TARGET}/target.cfg
 
-TEST		= test-hid
+TEST		= test-ups
 TESTS		+= test-debug.bin test-task.bin test-timer.bin test-uart.bin
 TESTS		+= philosophers.bin test-ram.bin
 TESTS       += test-latency.bin test-tswitch.bin #test-fpu.bin
@@ -85,7 +85,9 @@ ifneq (,$(findstring MC30SF6,$(CFLAGS)))
 TESTS		+= test-usbic.bin
 endif
 
-
+ifneq (,$(findstring VIDEOREGBOARD,$(CFLAGS)))
+TESTS		+= test-ds1307.bin test-ups.bin
+endif
 
 OUTS		= $(TESTS:%.bin=%.elf)
 SREC		= $(TESTS:%.bin=%.srec)
@@ -114,7 +116,7 @@ endif
 clean:
 		rm -rf *~ *.[oasi] *.elf *.bin *.srec *.lst *.dis *.map .deps $(MODULES)
 
-load:		$(TEST).srec
+load:		$(TEST).elf
 		$(STRIP) $(TEST).elf
 		mcprog -e2 $(TEST).elf 0x1fc10000
 

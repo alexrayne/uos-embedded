@@ -7,6 +7,9 @@
 #define FLASH_ERR_IO            -3
 #define FLASH_ERR_INVAL_SIZE    -4
 #define FLASH_ERR_BAD_ANSWER    -5
+#define FLASH_ERR_ERASE         -6
+#define FLASH_ERR_PROGRAM       -7
+#define FLASH_ERR_NOT_ALIGNED   -8
 
 #include <kernel/uos.h>
 
@@ -31,13 +34,16 @@ struct _flashif_t
     int (* erase_all)(flashif_t *flash);
     int (* erase_sectors)(flashif_t *flash, unsigned sector_num,
         unsigned nb_sectors);
-    int (* write)(flashif_t *flash, unsigned page_num,
+    int (* write)(flashif_t *flash, unsigned page_num, unsigned offset,
         void *data, unsigned size);
-    int (* read)(flashif_t *flash, unsigned page_num,
+    int (* read)(flashif_t *flash, unsigned page_num, unsigned offset,
         void *data, unsigned size);
     unsigned long (*min_address)(flashif_t *flash);
     int (* flush)(flashif_t *flash);
+    int (* needs_explicit_erase)(flashif_t *flash);
 };
+
+#define to_flashif(x)   ((flashif_t*)&(x)->flashif)
 
 static inline __attribute__((always_inline)) 
 unsigned flash_nb_sectors(flashif_t *flash)
@@ -107,10 +113,10 @@ int flash_erase_sectors(flashif_t *flash, unsigned sector_num,
 }
 
 static inline __attribute__((always_inline))
-int flash_write(flashif_t *flash, unsigned page_num, 
+int flash_write(flashif_t *flash, unsigned page_num, unsigned offset,
                 void *data, unsigned size)
 {
-    return flash->write(flash, page_num, data, size);
+    return flash->write(flash, page_num, offset, data, size);
 }
 
 static inline __attribute__((always_inline))
@@ -122,11 +128,11 @@ int flash_flush(flashif_t *flash)
 }
 
 static inline __attribute__((always_inline))
-int flash_read(flashif_t *flash, unsigned page_num, 
+int flash_read(flashif_t *flash, unsigned page_num, unsigned offset,
                 void *data, unsigned size)
 {
     if (flash->read)
-        return flash->read(flash, page_num, data, size);
+        return flash->read(flash, page_num, offset, data, size);
     else return FLASH_ERR_NOT_SUPP;
 }
 
@@ -138,10 +144,23 @@ unsigned flash_min_address(flashif_t *flash)
     else return FLASH_ERR_NOT_SUPP;
 }
 
+static inline __attribute__((always_inline)) 
+unsigned flash_max_address(flashif_t *flash)
+{
+    if (flash->min_address)
+        return flash->min_address(flash) + flash_size(flash);
+    else return FLASH_ERR_NOT_SUPP;
+}
 
+static inline __attribute__((always_inline)) 
+unsigned flash_needs_explicit_erase(flashif_t *flash)
+{
+	return flash->needs_explicit_erase(flash);
+}
 
 #ifdef __cplusplus
 }
 #endif
+
 
 #endif

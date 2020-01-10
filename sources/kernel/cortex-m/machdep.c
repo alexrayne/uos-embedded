@@ -123,6 +123,16 @@ _irq_handler_ (void)
 	);
 #endif
 
+#ifdef POWER_SAVE
+#   if defined (ARM_STM32L1)
+		if ((RCC->CFGR & RCC_SWS_MASK) == RCC_SWS_MSI) {
+			extern void stm32l_init_sysclk();
+			stm32l_init_sysclk();
+		}
+        PWR->CR |= PWR_CWUF;
+#	endif
+#endif
+
 	/* Get the current irq number */
 	int irq;
 	unsigned ipsr = arm_get_ipsr ();
@@ -143,7 +153,7 @@ _irq_handler_ (void)
        ARM_NVIC_ICER(irq >> 5) = 1 << (irq & 0x1F); 	// запрещаем прерывание
 #endif
 	}
-
+	
 //debug_printf ("<%d> ", irq);
 	mutex_irq_t *h = &mutex_irq [irq];
 	if (! h->lock) {

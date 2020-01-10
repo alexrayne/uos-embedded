@@ -9,11 +9,13 @@ ENTRY(_start_)
 MEMORY
 {
   text   (rx)   : ORIGIN = 0x08000000,	LENGTH = 256k
-  data   (rw!x) : ORIGIN = 0x20000000,	LENGTH = 32768-64
+  data   (rw!x) : ORIGIN = 0x20000000,	LENGTH = 32k
 }
 
 /* higher address of the user mode stack */
 _estack = 0x20008000;
+
+_btext = ORIGIN(text);
 
 SECTIONS
 {
@@ -64,10 +66,13 @@ SECTIONS
 
   .text           :
   {
-    *(.text .stub .text.* .gnu.linkonce.t.*)
+    PROVIDE (__loadable_start = .);
+    *(.loadable_header)
+    PROVIDE (__loadable_end = .);
     PROVIDE (__sram_code_start = .);
     *(.sram_code)
     PROVIDE (__sram_code_end = .);
+    *(.text .stub .text.* .gnu.linkonce.t.*)
     /* .gnu.warning sections are handled specially by elf32.em.  */
     *(.gnu.warning)
     *(.glue_7t) *(.glue_7)

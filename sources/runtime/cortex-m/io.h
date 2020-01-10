@@ -24,11 +24,17 @@
 #ifdef ARM_1986BE1
 #   include <runtime/cortex-m/io-1986ve1.h>
 #endif
+#ifdef ARM_STM32F2
+#   include <runtime/cortex-m/io-stm32f2.h>
+#endif
+#ifdef ARM_STM32F3
+#   include <runtime/cortex-m/io-stm32f3.h>
+#endif
 #ifdef ARM_STM32F4
 #   include <runtime/cortex-m/io-stm32f4.h>
 #endif
-#if defined(ARM_STM32L151RC) || defined(ARM_STM32L152RC)
-#   include <runtime/cortex-m/io-stm32l.h>
+#ifdef ARM_STM32L1
+#   include <runtime/cortex-m/io-stm32l1.h>
 #endif
 
 /*
@@ -190,6 +196,23 @@ arm_intr_enable ()
 static void inline __attribute__ ((always_inline))
 arm_bus_yield ()
 {
+#if defined (ARM_STM32L1)
+	RCC->CR |= RCC_MSION;
+	while (! (RCC->CR & RCC_MSIRDY));
+	
+	RCC->CFGR = (RCC->CFGR & ~RCC_SW_MASK) | RCC_SW_MSI;
+    while ((RCC->CFGR & RCC_SWS_MASK) != RCC_SWS_MSI);
+    
+    RCC->CR &= ~(RCC_HSION | RCC_HSEON | RCC_PLLON);
+    while (RCC->CR & (RCC_HSIRDY | RCC_HSERDY | RCC_PLLRDY));
+    
+    FLASH->ACR &= ~(FLASH_PRFTEN | FLASH_LATENCY(1));
+    while (FLASH->ACR & (FLASH_PRFTEN | FLASH_LATENCY(1)));
+    
+    FLASH->ACR = 0;
+	while (FLASH->ACR != 0);
+#endif
+	
 	asm volatile (
 	"wfi"
 	: : : "memory", "cc");
@@ -236,3 +259,25 @@ arm_count_leading_zeroes (unsigned x)
 
 	return n;
 }
+
+static void inline __attribute__ ((always_inline))
+arch_init_ram()
+{
+extern unsigned long _etext, __data_start, _edata, __bss_start, __bss_end;
+unsigned long *src, *dest, *limit;
+#ifndef EMULATOR /* not needed on emulator */
+	/* Copy the .data image from flash to ram.
+	 * Linker places it at the end of .text segment. */
+	src = &_etext;
+	dest = &__data_start;
+	limit = &_edata;
+	while (dest < limit)
+		*dest++ = *src++;
+#endif
+	/* Initialize .bss segment by zeroes. */
+	dest = &__bss_start;
+	limit = &__bss_end;
+	while (dest < limit)
+		*dest++ = 0;
+}
+

@@ -14,12 +14,12 @@
 #include <usb/usb_const.h>
 #include <usb/hid_const.h>
 #include <usb/hiddev.h>
-#include <stm32l/usbdevhal.h>
+#include <stm32l1/usbdevhal.h>
 
 ARRAY (task_space, 0x400);
 
 usbdev_t usb;
-stm32l_usbdev_t usbhal;
+stm32l1_usbdev_t usbhal;
 hiddev_t hid;
 mem_pool_t pool;
 timer_t timer;
@@ -213,11 +213,11 @@ static void task (void *arg)
 
 void uos_init (void)
 {
-    extern unsigned __bss_end[], _estack[];
+    extern unsigned long __bss_end, _estack;
 
     debug_printf ("=============== TEST-HID ================\n");	
 	
-    mem_init (&pool, (unsigned) __bss_end, (unsigned) _estack - 256);
+    mem_init (&pool, (unsigned) &__bss_end, (unsigned) &_estack - 256);
 	
     timer_init (&timer, KHZ, 128);
 
@@ -229,6 +229,6 @@ void uos_init (void)
     hiddev_set_report_desc (&hid, 0, mouse_report, sizeof (mouse_report), 3, 0, 0);
     //hiddev_output_report (&hid, 0, out_rep);
     
-    stm32l_usbdev_init (&usbhal, &usb, 10, &pool);
+    stm32l1_usbdev_init (&usbhal, &usb, 10, &pool);
     task_create (task, "task", "task", 1, task_space, sizeof (task_space));
 }

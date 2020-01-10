@@ -212,11 +212,11 @@ static void task (void *arg)
 
 void uos_init (void)
 {
-    extern unsigned __bss_end[], _estack[];
+    extern unsigned long __bss_end, _estack;
 
     debug_printf ("=============== TEST-HID ================\n");	
 	
-    mem_init (&pool, (unsigned) __bss_end, (unsigned) _estack - 256);
+    mem_init (&pool, (unsigned) &__bss_end, (unsigned) &_estack - 256);
 	
     timer_init (&timer, KHZ, 128);
 

@@ -140,16 +140,6 @@ again:
 			can_set_loop (&can, local_loop);
 			break;
 		}
-		if (cmd == CTL('T')) {
-			/* Список задач uOS. */
-			printf (&debug, "\n\n");
-			task_print (&debug, 0);
-			task_print (&debug, (task_t*) stack_console);
-			task_print (&debug, (task_t*) stack_receive);
-			task_print (&debug, (task_t*) stack_transmit);
-			putchar (&debug, '\n');
-			continue;
-		}
 	}
 	goto again;
 }

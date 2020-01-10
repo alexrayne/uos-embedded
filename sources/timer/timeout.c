@@ -59,6 +59,8 @@ void timeout_remove (timeout_t *ut){
  * */
 #ifdef USEC_TIMER
 void timeout_arm_us  (timeout_t *ut, timeout_time_t interval)
+#elif defined(NSEC_TIMER)
+void timeout_arm_ns  (timeout_t *ut, timeout_time_t interval)
 #else
 void timeout_arm  (timeout_t *ut, timeout_time_t interval)
 #endif
@@ -79,6 +81,8 @@ void timeout_arm  (timeout_t *ut, timeout_time_t interval)
  * */
 #ifdef USEC_TIMER
 bool_t timeout_rearm_us  (timeout_t *ut, timeout_time_t interval)
+#elif defined(NSEC_TIMER)
+bool_t timeout_rearm_ns  (timeout_t *ut, timeout_time_t interval)
 #else
 bool_t timeout_rearm  (timeout_t *ut, timeout_time_t interval)
 #endif

@@ -1,6 +1,0 @@
-#ifndef __STM32L_EEPROM_H__
-#define __STM32L_EEPROM_H__
-
-void eeprom_write(void *pointer, unsigned value);
-
-#endif // __STM32L_EEPROM_H__

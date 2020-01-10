@@ -370,4 +370,4 @@ bool_t  task_stack_enough(unsigned preserve){
 }
 #endif
 
-#endif /* !__KERNEL_INTERNAL_H_ */
+#endif /* __KERNEL_INTERNAL_H_ */
