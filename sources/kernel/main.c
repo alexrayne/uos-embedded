@@ -192,6 +192,11 @@ main (void)
     unsigned sp = (unsigned)(&task_idle->stack[ALIGNED_IDLE_TASK_STACKSZ-1]);
     /* stack pointer should align to doubles */
     set_stack_pointer ((void *)( sp & ~(sizeof(double)-1) ));
+#elif defined(MIPS32)
+    /* MIPS32 stack pointer must be 8-byte aligned */
+    unsigned long last_aligned_addr = (unsigned long) &task_idle->stack[ALIGNED_IDLE_TASK_STACKSZ-4];
+    last_aligned_addr &= ~0x7;
+    set_stack_pointer ((void *) last_aligned_addr);
 
 	task_idle->name = "idle";
 	list_init (&task_idle->item);

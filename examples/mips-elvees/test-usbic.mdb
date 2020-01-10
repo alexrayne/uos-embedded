@@ -1,0 +1,3 @@
+source mem_mc30sf6.cfg 
+loadelf test-usbic.elf
+run
