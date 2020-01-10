@@ -2,11 +2,11 @@ TARGET		= $(CURDIR)
 OS			= $(shell cd ../..; pwd)
 include target.cfg
 
-PROG		= uuloader
+#PROG		= uuloader
+PROG            = milprog
 
-TEST		= test-arinc
-TESTS		= test-tcp.bin
-TESTS       += test-eth.bin test-timer-lcd.bin test-task-lcd.bin
+TEST		 = test-ve1eth
+TESTS           += test-ve1eth.bin test-arinc.bin  test-timer-lcd.bin test-task-lcd.bin
 TESTS		+= test-task.bin test-timer.bin test-dma.bin test-irq.bin
 TESTS		+= test-latency.bin test-tswitch.bin phil-uart.bin #test-uart.bin
 TESTS		+= test-mil_std_bc.bin test-mil_std_rt.bin test-arinc.bin test-arinc-poll.bin
@@ -20,7 +20,7 @@ all:		$(OUTS) $(HEX) $(TESTS) $(TEST).dis
 
 
 load:		$(TEST).bin
-			$(PROG) -a $< 0x00006000
+			$(PROG) -a $< 0x00000000
 			
 
 $(OUTS) $(TESTS): startup.o libuos.a

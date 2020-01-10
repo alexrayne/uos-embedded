@@ -11,6 +11,9 @@
 #include <net/tcp.h>
 #include <net/arp.h>
 
+const unsigned long IP_ZERO_ADDR = 0;
+const unsigned long IP_BROADCAST_ADDR = 0xFFFFFFFF;
+
 #ifdef DEBUG_NET_IP
 #   ifndef IP_PRINTF
 #define IP_printf(...) debug_printf(__VA_ARGS__)

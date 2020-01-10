@@ -122,8 +122,8 @@ typedef struct __attribute__ ((aligned(8))) _eth_t {
 #endif
     } phy;
 	unsigned long intr;		/* interrupt counter */
-	unsigned char rxbuf_data [ETH_MTU + 8] __attribute__ ((aligned(8)));
-	unsigned char txbuf_data [ETH_MTU + 8] __attribute__ ((aligned(8)));
+	unsigned char rxbuf_data [ETH_MTU + 36] __attribute__ ((aligned(8)));
+	unsigned char txbuf_data [ETH_MTU + 36] __attribute__ ((aligned(8)));
 	unsigned char *rxbuf;		/* aligned rxbuf[] */
 	unsigned char *txbuf;		/* aligned txbuf[] */
 	unsigned rxbuf_physaddr;	/* phys address of rxbuf[] */

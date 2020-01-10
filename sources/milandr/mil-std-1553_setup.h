@@ -17,9 +17,21 @@
 #define RT_DEBUG               0
 #define BC_DEBUG               0
 
-// 96MHz делим на 4 получаем 24MHz
+#if KHZ==144000
 // 144MHz делим на 2 получаем 72MHz
 #define MIL_STD_CLOCK_DIV      2
+#elif KHZ==128000
+// 96MHz делим на 4 получаем 32MHz
+#define MIL_STD_CLOCK_DIV      4
+#elif KHZ==96000
+// 96MHz делим на 4 получаем 24MHz
+#define MIL_STD_CLOCK_DIV      4
+#elif KHZ==80000
+// 80MHz делим на 2 получаем 40MHz
+#define MIL_STD_CLOCK_DIV      2
+#else
+#error unsupported MAIN_CLK
+#endif
 
 #define LEFT_LED	4
 #define RIGHT_LED	2
@@ -74,6 +86,7 @@ struct milandr_mil1553_t
     unsigned            nb_emergency_errors;
     unsigned            queue_len;
     unsigned            nb_transmits;
+    unsigned            nb_irq;
 };
 
 typedef struct milandr_mil1553_t milandr_mil1553_t;

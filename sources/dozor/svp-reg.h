@@ -191,7 +191,8 @@
 #define SVP_BDR     SVP_REG_ADDR (0x3c)
 
 #define SVP_BDR_NDIV(x) ((x) & 0xF)         /* Делитель */
-#define SVP_BDR_TDC(x)  (((x) & 0x1F) << 4) /* Компенсация задержек */
+#define SVP_BDR_AUTOSW  (1 << 4)            /* Разрешение определения скорости передачи в приёмнике */
+#define SVP_BDR_TDC(x)  (((x) & 0x1F) << 8) /* Компенсация задержек */
 
 /*
  * SPDR - start packet delay register, 32 R/W
