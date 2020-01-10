@@ -116,6 +116,11 @@
 			<locationURI>uOS_SRC/mem</locationURI>
 		</link>
 		<link>
+			<name>milandr</name>
+			<type>2</type>
+			<locationURI>uOS_SRC/milandr</locationURI>
+		</link>
+		<link>
 			<name>net</name>
 			<type>2</type>
 			<locationURI>uOS_SRC/net</locationURI>
