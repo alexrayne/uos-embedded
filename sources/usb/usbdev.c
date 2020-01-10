@@ -267,7 +267,7 @@ void usbdevhal_reset (usbdev_t *u)
         u->ep_out[i].state = EP_STATE_DISABLED;
         u->ep_in[i].state = EP_STATE_DISABLED;
         u->ep_in[i].pid = 0;
-        u->ep_in[i].active = 0;
+        u->ep_in[i].active = (i == 0) ? 1 : 0;
     }
     //u->state = USBDEV_STATE_DEFAULT;
     u->ep_out[0].state = EP_STATE_WAIT_SETUP;
@@ -591,7 +591,9 @@ void usbdev_set_ack (usbdev_t *u, unsigned ep_n)
 
 void usbdev_sof_done(usbdev_t *u, unsigned ep_n) {
 
-    assert (ep_n < USBDEV_NB_ENDPOINTS);
+    if (ep_n >= USBDEV_NB_ENDPOINTS)
+        return;
+
     ep_in_t *epi = &u->ep_in[ep_n];
 
     if ((epi->state == EP_STATE_FROM_SOF) && (epi->active)) {

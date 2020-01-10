@@ -73,6 +73,8 @@ static inline short arch_getchar()
 
 #if defined(USE_USART1)
 #	define DBG_USART	USART1
+#elif defined(USE_USART2)
+#	define DBG_USART	USART2
 #elif defined(USE_USART6)
 #	define DBG_USART	USART6
 #else

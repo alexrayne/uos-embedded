@@ -113,8 +113,10 @@ generator will not work properly
     while ((RCC->CFGR & RCC_SWS_MASK) != RCC_SWS_PLL);
 
 #ifndef NDEBUG
-#ifdef USE_USART6
     // Init debug UART
+    USART_t *usart;
+    
+#if defined(USE_USART6)
     RCC->AHB1ENR |= RCC_GPIOGEN;
     GPIOG->MODER |= GPIO_ALT(9) | GPIO_ALT(14);
     GPIOG->AFRH |= GPIO_AF_USART6(9) | GPIO_AF_USART6(14);
@@ -122,24 +124,31 @@ generator will not work properly
     unsigned mant = (unsigned)(KHZ / APB2_DIV / (115.2 * 16));
     unsigned frac = (KHZ / APB2_DIV / (115.2 * 16) - mant) * 16;
     RCC->APB2ENR |= RCC_USART6EN;
-    USART6->CR1 |= USART_UE;
-    USART6->CR2 |= USART_STOP_1;
-    USART6->BRR = USART_DIV_MANTISSA(mant) | USART_DIV_FRACTION(frac);
-    USART6->CR1 |= USART_TE | USART_RE;
+    usart = USART6;
+#elif defined(USE_USART2)
+    RCC->AHB1ENR |= RCC_GPIOAEN;
+    GPIOA->MODER |= GPIO_ALT(2) | GPIO_ALT(3);
+    GPIOA->AFRL |= GPIO_AF_USART2(2) | GPIO_AF_USART2(3);
+    
+    unsigned mant = (unsigned)(KHZ / APB1_DIV / (115.2 * 16));
+    unsigned frac = (KHZ / APB1_DIV / (115.2 * 16) - mant) * 16;
+    RCC->APB1ENR |= RCC_USART2EN;
+    usart = USART2;
 #else
-    // Init debug UART
-    RCC->AHB1ENR |= RCC_GPIOCEN;
-    GPIOC->MODER |= GPIO_ALT(10) | GPIO_ALT(11);
-    GPIOC->AFRH |= GPIO_AF_USART3(10) | GPIO_AF_USART3(11);
+    RCC->AHB1ENR |= RCC_GPIODEN;
+    GPIOD->MODER |= GPIO_ALT(8) | GPIO_ALT(9);
+    GPIOD->AFRH |= GPIO_AF_USART3(8) | GPIO_AF_USART3(9);
     
     unsigned mant = (unsigned)(KHZ / APB1_DIV / (115.2 * 16));
     unsigned frac = (KHZ / APB1_DIV / (115.2 * 16) - mant) * 16;
     RCC->APB1ENR |= RCC_USART3EN;
-    USART3->CR1 |= USART_UE;
-    USART3->CR2 |= USART_STOP_1;
-    USART3->BRR = USART_DIV_MANTISSA(mant) | USART_DIV_FRACTION(frac);
-    USART3->CR1 |= USART_TE | USART_RE;
+    usart = USART3;
 #endif
+
+    usart->CR1 |= USART_UE;
+    usart->CR2 |= USART_STOP_1;
+    usart->BRR = USART_DIV_MANTISSA(mant) | USART_DIV_FRACTION(frac);
+    usart->CR1 |= USART_TE | USART_RE;
 #endif // NDEBUG
 
 	arch_init_ram();

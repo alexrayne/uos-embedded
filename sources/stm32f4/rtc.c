@@ -2,7 +2,7 @@
 #include <kernel/uos.h>
 #include "rtc.h"
 
-static void stm32f4_get_time(rtcif_t *rtc, datetime_t *dt)
+static int stm32f4_get_time(rtcif_t *rtc, datetime_t *dt)
 {
     while (! (RTC->ISR & RTC_RSF));
     
@@ -19,9 +19,11 @@ static void stm32f4_get_time(rtcif_t *rtc, datetime_t *dt)
     dt->minute = RTC_GET_MNT(tr) * 10 + RTC_GET_MNU(tr);
     dt->second = RTC_GET_ST(tr) * 10 + RTC_GET_SU(tr);
     dt->nsecond = 1000000000ull * ssr / 65536;
+    
+    return RTC_ERR_OK;
 }
 
-static void stm32f4_set_time(rtcif_t *rtc, const datetime_t *dt)
+static int stm32f4_set_time(rtcif_t *rtc, const datetime_t *dt)
 {
     uint32_t ssr = 65536ull * dt->nsecond / 1000000000ull;
     uint32_t tr  = RTC_ST(dt->second / 10) | RTC_SU(dt->second % 10) |
@@ -39,6 +41,8 @@ static void stm32f4_set_time(rtcif_t *rtc, const datetime_t *dt)
     RTC->SSR = ssr;
     
     RTC->ISR &= ~RTC_INIT;
+    
+    return RTC_ERR_OK;
 }
 
 void stm32f4_rtc_init(stm32f4_rtc_t *stm_rtc)
